@@ -1,6 +1,10 @@
 ### Create conda environment
-# conda env create -f environment.yaml
-# conda activate sam6d
+conda env create -f environment.yaml
+
+# Ensure conda is initialized in the script
+eval "$(conda shell.bash hook)"
+conda activate sam6d
+
 
 ### Install pointnet2
 cd Pose_Estimation_Model/model/pointnet2

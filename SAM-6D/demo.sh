@@ -1,7 +1,6 @@
 # Render CAD templates
 cd Render
-blenderproc run render_custom_templates.py --output_dir $OUTPUT_DIR --cad_path $CAD_PATH #--colorize True 
-
+blenderproc run render_custom_templates.py --output_dir $OUTPUT_DIR --cad_path $CAD_PATH --custom-blender-path $BLENDER_PATH #--colorize True 
 
 # Run instance segmentation model
 export SEGMENTOR_MODEL=sam
