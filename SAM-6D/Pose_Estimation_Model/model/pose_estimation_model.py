@@ -36,6 +36,8 @@ class Net(nn.Module):
         )
         geo_embedding_o = self.geo_embedding(torch.cat([bg_point, sparse_po], dim=1))
 
+        torch.cuda.empty_cache()
+
         # coarse_point_matching
         end_points = self.coarse_point_matching(
             sparse_pm, sparse_fm, geo_embedding_m,

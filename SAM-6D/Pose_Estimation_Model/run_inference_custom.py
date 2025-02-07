@@ -79,6 +79,8 @@ def init():
     cfg.seg_path = args.seg_path
 
     cfg.det_score_thresh = args.det_score_thresh
+
+    # Comment out to use cpu instead
     gorilla.utils.set_cuda_visible_devices(gpu_ids = cfg.gpus)
 
     return  cfg
@@ -157,8 +159,11 @@ def get_templates(path, cfg):
         i = int(total_nView / n_template_view * v)
         tem, tem_choose, tem_pts = _get_template(path, cfg, i)
         all_tem.append(torch.FloatTensor(tem).unsqueeze(0).cuda())
+        # all_tem.append(torch.FloatTensor(tem).unsqueeze(0).cpu())
         all_tem_choose.append(torch.IntTensor(tem_choose).long().unsqueeze(0).cuda())
+        # all_tem_choose.append(torch.IntTensor(tem_choose).long().unsqueeze(0).cpu())
         all_tem_pts.append(torch.FloatTensor(tem_pts).unsqueeze(0).cuda())
+        # all_tem_pts.append(torch.FloatTensor(tem_pts).unsqueeze(0).cpu())
     return all_tem, all_tem_pts, all_tem_choose
 
 
@@ -243,13 +248,19 @@ def get_test_data(rgb_path, depth_path, cam_path, cad_path, seg_path, det_score_
 
     ret_dict = {}
     ret_dict['pts'] = torch.stack(all_cloud).cuda()
+    # ret_dict['pts'] = torch.stack(all_cloud).cpu()
     ret_dict['rgb'] = torch.stack(all_rgb).cuda()
+    # ret_dict['rgb'] = torch.stack(all_rgb).cpu()
     ret_dict['rgb_choose'] = torch.stack(all_rgb_choose).cuda()
+    # ret_dict['rgb_choose'] = torch.stack(all_rgb_choose).cpu()
     ret_dict['score'] = torch.FloatTensor(all_score).cuda()
+    # ret_dict['score'] = torch.FloatTensor(all_score).cpu()
 
     ninstance = ret_dict['pts'].size(0)
     ret_dict['model'] = torch.FloatTensor(model_points).unsqueeze(0).repeat(ninstance, 1, 1).cuda()
+    # ret_dict['model'] = torch.FloatTensor(model_points).unsqueeze(0).repeat(ninstance, 1, 1).cpu()
     ret_dict['K'] = torch.FloatTensor(K).unsqueeze(0).repeat(ninstance, 1, 1).cuda()
+    # ret_dict['K'] = torch.FloatTensor(K).unsqueeze(0).repeat(ninstance, 1, 1).cpu()
     return ret_dict, whole_image, whole_pts.reshape(-1, 3), model_points, all_dets
 
 
@@ -265,6 +276,7 @@ if __name__ == "__main__":
     MODEL = importlib.import_module(cfg.model_name)
     model = MODEL.Net(cfg.model)
     model = model.cuda()
+    # model = model.cpu()
     model.eval()
     checkpoint = os.path.join(os.path.dirname((os.path.abspath(__file__))), 'checkpoints', 'sam-6d-pem-base.pth')
     gorilla.solver.load_checkpoint(model=model, filename=checkpoint)

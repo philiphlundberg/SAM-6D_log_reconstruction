@@ -136,7 +136,6 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
         image = image * mask[:, :, None]
         templates.append(image)
         masks.append(mask.unsqueeze(-1))
-        
     templates = torch.stack(templates).permute(0, 3, 1, 2)
     masks = torch.stack(masks).permute(0, 3, 1, 2)
     boxes = torch.tensor(np.array(boxes))
@@ -149,7 +148,6 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     proposal_processor = CropResizePad(processing_config.image_size)
     templates = proposal_processor(images=templates, boxes=boxes).to(device)
     masks_cropped = proposal_processor(images=masks, boxes=boxes).to(device)
-
     model.ref_data = {}
     model.ref_data["descriptors"] = model.descriptor_model.compute_features(
                     templates, token_name="x_norm_clstoken"
@@ -157,7 +155,6 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     model.ref_data["appe_descriptors"] = model.descriptor_model.compute_masked_patch_feature(
                     templates, masks_cropped[:, 0, :, :]
                 ).unsqueeze(0).data
-    
     # run inference
     rgb = Image.open(rgb_path).convert("RGB")
     detections = model.segmentor_model.generate_masks(np.array(rgb))

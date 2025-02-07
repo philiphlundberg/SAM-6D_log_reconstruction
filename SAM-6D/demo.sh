@@ -1,13 +1,14 @@
-# Render CAD templates
+# # Render CAD templates
 cd Render
-blenderproc run render_custom_templates.py --output_dir $OUTPUT_DIR --cad_path $CAD_PATH --custom-blender-path $BLENDER_PATH #--colorize True 
+# # blenderproc run render_custom_templates.py --output_dir $OUTPUT_DIR --cad_path $CAD_PATH --custom-blender-path $BLENDER_PATH #--colorize True 
 
-# Run instance segmentation model
-export SEGMENTOR_MODEL=sam
+# # Run instance segmentation model
+# export SEGMENTOR_MODEL=fastsam
 
-cd ../Instance_Segmentation_Model
-python run_inference_custom.py --segmentor_model $SEGMENTOR_MODEL --output_dir $OUTPUT_DIR --cad_path $CAD_PATH --rgb_path $RGB_PATH --depth_path $DEPTH_PATH --cam_path $CAMERA_PATH
+ cd ../Instance_Segmentation_Model
+# python run_inference_custom.py --segmentor_model $SEGMENTOR_MODEL --output_dir $OUTPUT_DIR --cad_path $CAD_PATH --rgb_path $RGB_PATH --depth_path $DEPTH_PATH --cam_path $CAMERA_PATH
 
+# echo "Instance Segmentation Done"
 
 # Run pose estimation model
 export SEG_PATH=$OUTPUT_DIR/sam6d_results/detection_ism.json
