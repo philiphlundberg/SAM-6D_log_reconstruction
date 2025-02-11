@@ -238,7 +238,29 @@ class Instance_Segmentation_Model(pl.LightningModule):
         proposal: N_query x imageH x imageW
         depth: imageH x imageW
         """
+
         (N_query, imageH, imageW) = proposal.squeeze_().shape
+        # Print the sizes to know if they match up
+        print(f"Proposal size: {proposal.shape}, Depth size: {depth.shape}")
+        print(f"What is N_query: {N_query}, imageH: {imageH}, imageW: {imageW}")
+
+        ### I need to change the depth image to only include 2 channels
+        
+        # The multiplication that is not working:
+        # proposal * (depth[None, ...].repeat(N_query, 1, 1))
+
+        ## When running working example:Data
+        # depth = np.array(imageio.imread(depth_path)).astype(np.int32)
+        # Proposal size: torch.Size([125, 480, 640]), Depth size: torch.Size([480, 640])
+        # What is N_query: 125, imageH: 480, imageW: 640
+        # What shape the .repeat do? torch.Size([125, 1, 480, 640])
+
+        ## When running my images:
+        # depth = np.array(imageio.imread(depth_path)).astype(np.int32)
+        # Proposal size: torch.Size([38, 1024, 1024]), Depth size: torch.Size([1024, 1024, 4])
+        # What is N_query: 38, imageH: 1024, imageW: 1024
+        # What shape the .repeat do? torch.Size([38, 1024, 1024, 4])
+
         masked_depth = proposal * (depth[None, ...].repeat(N_query, 1, 1))
         translate = depth_image_to_pointcloud_translate_torch(
             masked_depth, depth_scale, cam_intrinsic
