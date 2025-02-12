@@ -1,15 +1,24 @@
 def extractor(args, image):
 
     if args.img_type=="Depth":
-        print("Depth image detected")
+        print(f"Depth image of shape {image.shape} detected")
         if len(image.shape)==3:
             # Extract the first channel of the depth image
-            image = image[:, :, 0]  
+            print("Extracting only one channel...")
+            image = image[:, :, 0]
+        else:
+            print("No channel extracted")
+            # exit the program without saving
+            exit()
     elif args.img_type=="RGB":
-        print("Checking size of the image")
+        print(f"RGB image of shape {image.shape} detected")
         if image.shape[-1]==4:
-            print("Contains alpha channel...")
-            image = image[:, :, :3]          
+            print("Removing alpha channel...")
+            image = image[:, :, :3]
+        else:
+            print("No alpha channel removed")
+            # exit the program without saving
+            exit()   
     print(f"reshaped image: {image.shape}")
     return image
 
