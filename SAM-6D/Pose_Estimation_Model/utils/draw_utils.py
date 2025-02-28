@@ -48,7 +48,7 @@ def get_3d_bbox(scale, shift = 0):
     bbox_3d = bbox_3d.transpose()
     return bbox_3d
 
-def draw_3d_bbox(img, imgpts, color, size=3):
+def draw_3d_bbox(img, imgpts, color, size=1):
     imgpts = np.int32(imgpts).reshape(-1, 2)
 
     # draw ground layer in darker color
@@ -72,7 +72,7 @@ def draw_3d_pts(img, imgpts, color, size=1):
         img = cv2.circle(img, (point[0], point[1]), size, color, -1)
     return img
 
-def draw_detections(image, pred_rots, pred_trans, model_points, intrinsics, color=(255, 0, 0)):
+def draw_detections(image, pred_rots, pred_trans, model_points, intrinsics, color=(0, 255, 0)):
     num_pred_instances = len(pred_rots)
     draw_image_bbox = image.copy()
     # 3d bbox
@@ -81,14 +81,14 @@ def draw_detections(image, pred_rots, pred_trans, model_points, intrinsics, colo
     bbox_3d = get_3d_bbox(scale, shift)
 
     # 3d point
-    choose = np.random.choice(np.arange(len(model_points)), 512)
+    choose = np.random.choice(np.arange(len(model_points)), 200) # 512
     pts_3d = model_points[choose].T
 
     for ind in range(num_pred_instances):
         # draw 3d bounding box
         transformed_bbox_3d = pred_rots[ind]@bbox_3d + pred_trans[ind][:,np.newaxis]
         projected_bbox = calculate_2d_projections(transformed_bbox_3d, intrinsics[ind])
-        draw_image_bbox = draw_3d_bbox(draw_image_bbox, projected_bbox, color)
+        draw_image_bbox = draw_3d_bbox(draw_image_bbox, projected_bbox, color=(255,0,0), size=1)
         # draw point cloud
         transformed_pts_3d = pred_rots[ind]@pts_3d + pred_trans[ind][:,np.newaxis]
         projected_pts = calculate_2d_projections(transformed_pts_3d, intrinsics[ind])

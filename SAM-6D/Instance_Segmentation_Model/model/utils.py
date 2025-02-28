@@ -156,6 +156,10 @@ class Detections:
         """
         scene_id, image_id, category_id, bbox, time
         """
+
+        # Debug
+        print(f"Object IDs before assigning: {self.object_ids}")
+
         boxes = xyxy_to_xywh(self.boxes)
         results = {
             "scene_id": scene_id,

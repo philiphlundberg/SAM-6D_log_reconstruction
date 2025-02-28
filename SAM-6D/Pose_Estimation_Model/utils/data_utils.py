@@ -90,6 +90,17 @@ def rle_to_binary_mask(rle):
 
 
 def get_point_cloud_from_depth(depth, K, bbox=None):
+    """
+    Generates a 3D point cloud from a depth map using intrinsic camera parameters.
+
+    :param depth: 2D numpy array representing the depth map of the scene.
+    :param K: 3x3 numpy array representing the intrinsic camera matrix.
+    :param bbox: Optional; list or tuple of four integers (rmin, rmax, cmin, cmax) 
+                 defining the region of interest in the depth map.
+    :return: 3D numpy array of shape (H, W, 3) where each pixel contains the 
+             corresponding 3D point coordinates (X, Y, Z) in the camera coordinate system.
+    """
+
     cam_fx, cam_fy, cam_cx, cam_cy = K[0,0], K[1,1], K[0,2], K[1,2]
 
     im_H, im_W = depth.shape
@@ -102,7 +113,10 @@ def get_point_cloud_from_depth(depth, K, bbox=None):
         xmap = xmap[rmin:rmax, cmin:cmax].astype(np.float32)
         ymap = ymap[rmin:rmax, cmin:cmax].astype(np.float32)
 
-    pt2 = depth.astype(np.float32)
+    # Det här är höjden i djupbilden, alltså Z
+    pt2 = depth.astype(np.float32) 
+    # Det här är (x - cx) * Z / fx vilket är "pinhole camera model"
+    # https://stackoverflow.com/questions/22938455/the-coordinate-system-of-pinhole-camera-model
     pt0 = (xmap.astype(np.float32) - cam_cx) * pt2 / cam_fx
     pt1 = (ymap.astype(np.float32) - cam_cy) * pt2 / cam_fy
 

@@ -54,10 +54,10 @@ class CustomSamAutomaticMaskGenerator(SamAutomaticMaskGenerator):
         self,
         sam: Sam,
         min_mask_region_area: int = 0,
-        points_per_batch: int = 64,
-        stability_score_thresh: float = 0.85,
-        box_nms_thresh: float = 0.7,
-        crop_overlap_ratio: float = 512 / 1500,
+        points_per_batch: int = 200, # 64,
+        stability_score_thresh: float = 0.85, #0.85,
+        box_nms_thresh: float = 0.1, # 0.7,
+        crop_overlap_ratio: float = 512 / 1500,  # 512 / 1500,
         segmentor_width_size=None,
         pred_iou_thresh: float = 0.88,
     ):
@@ -133,7 +133,11 @@ class CustomSamAutomaticMaskGenerator(SamAutomaticMaskGenerator):
         # Remove duplicate masks between crops
         if len(crop_boxes) > 1:
             # Prefer masks from smaller crops
-            scores = 1 / box_area(data["crop_boxes"])
+            # scores = 1 / box_area(data["crop_boxes"])
+
+            # Prefer masks from bigger crops
+            scores = box_area(data["crop_boxes"])
+
             scores = scores.to(data["boxes"].device)
             keep_by_nms = batched_nms(
                 data["boxes"].float(),

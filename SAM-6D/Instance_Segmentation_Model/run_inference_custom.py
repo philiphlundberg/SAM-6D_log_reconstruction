@@ -33,6 +33,10 @@ from model.utils import Detections, convert_npz_to_json
 from model.loss import Similarity
 from utils.inout import load_json, save_json_bop23
 
+from utils.clip_utils import *
+
+from draw_bounding_box import draw_bounding_boxes
+
 inv_rgb_transform = T.Compose(
         [
             T.Normalize(
@@ -49,36 +53,90 @@ def visualize(rgb, detections, save_path="tmp.png"):
     colors = distinctipy.get_colors(len(detections))
     alpha = 0.33
 
+    # Step 1: Find highest scored detection
     best_score = 0.
-    for mask_idx, det in enumerate(detections):
-        if best_score < det['score']:
+    best_det = None
+    for det in detections:
+        if det['score'] > best_score:
             best_score = det['score']
-            best_det = detections[mask_idx]
+            best_det = det
 
-    mask = rle_to_mask(best_det["segmentation"])
-    edge = canny(mask)
-    edge = binary_dilation(edge, np.ones((2, 2)))
+    if best_det is None:
+        return rgb  # No detections, return the original image
+
     obj_id = best_det["category_id"]
-    temp_id = obj_id - 1
+    temp_id = obj_id - 1  # Index for color selection
 
-    r = int(255*colors[temp_id][0])
-    g = int(255*colors[temp_id][1])
-    b = int(255*colors[temp_id][2])
-    img[mask, 0] = alpha*r + (1 - alpha)*img[mask, 0]
-    img[mask, 1] = alpha*g + (1 - alpha)*img[mask, 1]
-    img[mask, 2] = alpha*b + (1 - alpha)*img[mask, 2]   
-    img[edge, :] = 255
-    
+    r = int(255 * colors[temp_id][0])
+    g = int(255 * colors[temp_id][1])
+    b = int(255 * colors[temp_id][2])
+
+    # Step 2: Process all detections with the same category_id
+    for det in detections:
+        if det["category_id"] == obj_id:
+            mask = rle_to_mask(det["segmentation"])
+            edge = canny(mask)
+            edge = binary_dilation(edge, np.ones((2, 2)))
+
+            img[mask, 0] = alpha * r + (1 - alpha) * img[mask, 0]
+            img[mask, 1] = alpha * g + (1 - alpha) * img[mask, 1]
+            img[mask, 2] = alpha * b + (1 - alpha) * img[mask, 2]
+            img[edge, :] = 255  # Highlight edges in white
+
     img = Image.fromarray(np.uint8(img))
     img.save(save_path)
     prediction = Image.open(save_path)
-    
-    # concat side by side in PIL
+
+    # Concatenate original and prediction images
     img = np.array(img)
     concat = Image.new('RGB', (img.shape[1] + prediction.size[0], img.shape[0]))
     concat.paste(rgb, (0, 0))
     concat.paste(prediction, (img.shape[1], 0))
+
     return concat
+
+# def visualize(rgb, detections, save_path="tmp.png"):
+#     img = rgb.copy()
+#     gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+#     img = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
+#     colors = distinctipy.get_colors(len(detections))
+#     alpha = 0.33
+
+#     # Step 1: Find the highest scored detection
+#     best_score = 0.
+#     # Print all detection ids
+#     for det in detections:
+#         print(det['category_id'])
+    
+#     for mask_idx, det in enumerate(detections):
+#         if best_score < det['score']:
+#             best_score = det['score']
+#             best_det = detections[mask_idx]
+
+#     mask = rle_to_mask(best_det["segmentation"])
+#     edge = canny(mask)
+#     edge = binary_dilation(edge, np.ones((2, 2)))
+#     obj_id = best_det["category_id"]
+#     temp_id = obj_id - 1
+
+#     r = int(255*colors[temp_id][0])
+#     g = int(255*colors[temp_id][1])
+#     b = int(255*colors[temp_id][2])
+#     img[mask, 0] = alpha*r + (1 - alpha)*img[mask, 0]
+#     img[mask, 1] = alpha*g + (1 - alpha)*img[mask, 1]
+#     img[mask, 2] = alpha*b + (1 - alpha)*img[mask, 2]   
+#     img[edge, :] = 255
+    
+#     img = Image.fromarray(np.uint8(img))
+#     img.save(save_path)
+#     prediction = Image.open(save_path)
+    
+#     # concat side by side in PIL
+#     img = np.array(img)
+#     concat = Image.new('RGB', (img.shape[1] + prediction.size[0], img.shape[0]))
+#     concat.paste(rgb, (0, 0))
+#     concat.paste(prediction, (img.shape[1], 0))
+#     return concat
 
 def batch_input_data(depth_path, cam_path, device):
     batch = {}
@@ -92,7 +150,7 @@ def batch_input_data(depth_path, cam_path, device):
     batch['depth_scale'] = torch.from_numpy(depth_scale).unsqueeze(0).to(device)
     return batch
 
-def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, cam_path, stability_score_thresh):
+def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, cam_path, stability_score_thresh, search_text):
     with initialize(version_base=None, config_path="configs"):
         cfg = compose(config_name='run_inference.yaml')
 
@@ -158,8 +216,29 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     # run inference
     rgb = Image.open(rgb_path).convert("RGB")
     detections = model.segmentor_model.generate_masks(np.array(rgb))
+    print(f"Det här är alla masker: {detections['masks']}")
+    # Det här är bara masker (numpy array)
     detections = Detections(detections)
+    print("Detection keys:", detections.keys)
+    # ['masks', 'boxes']
+    # Extract masks as the first entry from detections
+    print(f"Detections masks: {detections.masks}")
+    print(f"Detections boxes: {detections.boxes}")
+    masks = detections.masks
+    boxes = detections.boxes
+
+    # HÄR TROR JAG ATT JAG VILL LÄGGA TILL CLIP
+    indices = run_extract_category(masks, boxes, rgb, search_text=search_text, threshold=0.05)
+    detections.masks = detections.masks[indices]
+    detections.boxes = detections.boxes[indices]
+
+    print(f"Filtered detections masks: {detections.masks}")
+    print(f"Filtered detections boxes: {detections.boxes}")
+
+
     query_decriptors, query_appe_descriptors = model.descriptor_model.forward(np.array(rgb), detections)
+    # query_descriptors är en grövre feature descriptor. [4, 1024]
+    # query_appe_descriptors har nåt element som säger lokala features också? [4, 256, 1024]
 
     # matching descriptors
     (
@@ -196,14 +275,32 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     # final score
     final_score = (semantic_score + appe_scores + geometric_score*visible_ratio) / (1 + 1 + visible_ratio)
 
+
     detections.add_attribute("scores", final_score)
-    detections.add_attribute("object_ids", torch.zeros_like(final_score))   
+    # Assign object ID 1 if final_score > 0.3, else 0
+    object_ids = (final_score > 0.3).long()
+    detections.add_attribute("object_ids", object_ids)
+    print(f"Assigned Object IDs: {object_ids}")
+
+    # detections.add_attribute("scores", final_score)
+    # # Det här gör så att alla objekt har ID 0
+    # detections.add_attribute("object_ids", torch.zeros_like(final_score))
+    # # detections.add_attribute("object_ids", pred_idx_objects)
+    # print(f"Assigned Object IDs: {pred_idx_objects}")
          
     detections.to_numpy()
     save_path = f"{output_dir}/sam6d_results/detection_ism"
+    # Debug
+    print(f"Object IDs: {detections.object_ids}")
     detections.save_to_file(0, 0, 0, save_path, "Custom", return_results=False)
     detections = convert_npz_to_json(idx=0, list_npz_paths=[save_path+".npz"])
     save_json_bop23(save_path+".json", detections)
+
+    for det in detections:
+        print(f"Detection: Score={det['score']}, Category ID={det['category_id']}")
+
+    draw_bounding_boxes(rgb_path, boxes, f"{output_dir}/sam6d_results/vis_boxes.png")
+    # vis_boxes.save(f"{output_dir}/sam6d_results/vis_boxes.png")
     vis_img = visualize(rgb, detections, f"{output_dir}/sam6d_results/vis_ism.png")
     vis_img.save(f"{output_dir}/sam6d_results/vis_ism.png")
     
@@ -216,9 +313,10 @@ if __name__ == "__main__":
     parser.add_argument("--depth_path", nargs="?", help="Path to Depth image(mm)")
     parser.add_argument("--cam_path", nargs="?", help="Path to camera information")
     parser.add_argument("--stability_score_thresh", default=0.97, type=float, help="stability_score_thresh of SAM")
+    parser.add_argument("--search_text", default="log", type=str, help="search_text of CLIP")
     args = parser.parse_args()
     os.makedirs(f"{args.output_dir}/sam6d_results", exist_ok=True)
     run_inference(
         args.segmentor_model, args.output_dir, args.cad_path, args.rgb_path, args.depth_path, args.cam_path, 
-        stability_score_thresh=args.stability_score_thresh,
+        stability_score_thresh=args.stability_score_thresh, search_text=args.search_text
     )
