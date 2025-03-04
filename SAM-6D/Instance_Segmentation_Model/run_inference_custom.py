@@ -216,29 +216,28 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     # run inference
     rgb = Image.open(rgb_path).convert("RGB")
     detections = model.segmentor_model.generate_masks(np.array(rgb))
-    print(f"Det här är alla masker: {detections['masks']}")
     # Det här är bara masker (numpy array)
     detections = Detections(detections)
-    print("Detection keys:", detections.keys)
     # ['masks', 'boxes']
     # Extract masks as the first entry from detections
-    print(f"Detections masks: {detections.masks}")
-    print(f"Detections boxes: {detections.boxes}")
     masks = detections.masks
     boxes = detections.boxes
+    print(f"Detection masks: {detections.masks}")
 
-    # HÄR TROR JAG ATT JAG VILL LÄGGA TILL CLIP
-    indices = run_extract_category(masks, boxes, rgb, search_text=search_text, threshold=0.05)
-    detections.masks = detections.masks[indices]
-    detections.boxes = detections.boxes[indices]
+    # # # Add some padding to the boxes to make it easier for CLIP
+    # padding = 20
 
-    print(f"Filtered detections masks: {detections.masks}")
-    print(f"Filtered detections boxes: {detections.boxes}")
+    # # HÄR TROR JAG ATT JAG VILL LÄGGA TILL CLIP
+    # indices, boxes = run_extract_category(masks, boxes, padding, rgb, search_text=search_text, threshold=22)
+    # detections.masks = detections.masks[indices]
+    # detections.boxes = detections.boxes[indices]
+    # detections.boxes = add_padding(detections.boxes, padding)
+    # boxes_after = detections.boxes
+
+    # print(f"Filtered detections boxes: {detections.boxes}")
 
 
     query_decriptors, query_appe_descriptors = model.descriptor_model.forward(np.array(rgb), detections)
-    # query_descriptors är en grövre feature descriptor. [4, 1024]
-    # query_appe_descriptors har nåt element som säger lokala features också? [4, 256, 1024]
 
     # matching descriptors
     (
@@ -247,6 +246,8 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
         semantic_score,
         best_template,
     ) = model.compute_semantic_score(query_decriptors)
+
+
 
     # update detections
     detections.filter(idx_selected_proposals)
@@ -274,24 +275,35 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
 
     # final score
     final_score = (semantic_score + appe_scores + geometric_score*visible_ratio) / (1 + 1 + visible_ratio)
+    print("Final score: ", final_score)
 
 
+
+    ## Use this if you want to classify to two classes (log or not log)
     detections.add_attribute("scores", final_score)
     # Assign object ID 1 if final_score > 0.3, else 0
     object_ids = (final_score > 0.3).long()
     detections.add_attribute("object_ids", object_ids)
     print(f"Assigned Object IDs: {object_ids}")
 
+    detections.check_object_ids()
+    # Use this to suppress overlapping boxes
+    # detections.apply_containment_suppression_for_id_2()  # Suppress overlapping boxes 
+    # Use this to suppress overlapping masks
+    detections.apply_mask_dot_nms_category1()
+    detections.check_object_ids()
+    
+    ## Use this if you have a predefined list of object IDs
     # detections.add_attribute("scores", final_score)
     # # Det här gör så att alla objekt har ID 0
     # detections.add_attribute("object_ids", torch.zeros_like(final_score))
     # # detections.add_attribute("object_ids", pred_idx_objects)
     # print(f"Assigned Object IDs: {pred_idx_objects}")
-         
+
+    print(f"Detection boxes before saving: {detections.boxes}")
+
     detections.to_numpy()
     save_path = f"{output_dir}/sam6d_results/detection_ism"
-    # Debug
-    print(f"Object IDs: {detections.object_ids}")
     detections.save_to_file(0, 0, 0, save_path, "Custom", return_results=False)
     detections = convert_npz_to_json(idx=0, list_npz_paths=[save_path+".npz"])
     save_json_bop23(save_path+".json", detections)
@@ -299,7 +311,8 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     for det in detections:
         print(f"Detection: Score={det['score']}, Category ID={det['category_id']}")
 
-    draw_bounding_boxes(rgb_path, boxes, f"{output_dir}/sam6d_results/vis_boxes.png")
+    draw_bounding_boxes(rgb_path, boxes, f"{output_dir}/sam6d_results/vis_boxes_before.png")
+    # draw_bounding_boxes(rgb_path, boxes_after, f"{output_dir}/sam6d_results/vis_boxes_after.png")
     # vis_boxes.save(f"{output_dir}/sam6d_results/vis_boxes.png")
     vis_img = visualize(rgb, detections, f"{output_dir}/sam6d_results/vis_ism.png")
     vis_img.save(f"{output_dir}/sam6d_results/vis_ism.png")
@@ -316,6 +329,7 @@ if __name__ == "__main__":
     parser.add_argument("--search_text", default="log", type=str, help="search_text of CLIP")
     args = parser.parse_args()
     os.makedirs(f"{args.output_dir}/sam6d_results", exist_ok=True)
+    print("search text input: ", args.search_text)
     run_inference(
         args.segmentor_model, args.output_dir, args.cad_path, args.rgb_path, args.depth_path, args.cam_path, 
         stability_score_thresh=args.stability_score_thresh, search_text=args.search_text

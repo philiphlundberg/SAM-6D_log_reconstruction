@@ -124,6 +124,140 @@ class Detections:
         )
         for key in self.keys:
             setattr(self, key, getattr(self, key)[keep_idx])
+    
+    def apply_containment_suppression_for_id_2(self, tolerance=5):
+        """
+        NOTE: Object ID before this is 1, really dumb. (2 = 1)
+        Suppresses any box (with object_id == 2) whose corners are entirely
+        within another (larger) box of the same object_id (== 2).
+        
+        Leaves all other boxes (object_id != 2) untouched.
+        Updates all attributes in `self.keys` accordingly.
+        """
+        # We'll create a keep mask for all boxes, default True
+        num_boxes = len(self.boxes)
+        keep = [True] * num_boxes
+        
+        # Retrieve the object IDs 
+        object_ids = self.object_ids  # shape: (num_boxes,)
+        
+        for i in range(num_boxes):
+            # Only check containment if the current box is object_id == 2
+            if object_ids[i] != 1:
+                continue  # skip if not object_id == 2
+            
+            if not keep[i]:
+                # Already marked for removal
+                continue
+            
+            x1_i, y1_i, x2_i, y2_i = self.boxes[i]
+            
+            # Compare with all other boxes that have object_id == 2
+            for j in range(num_boxes):
+                if j == i or object_ids[j] != 1:
+                    continue
+                
+                x1_j, y1_j, x2_j, y2_j = self.boxes[j]
+                
+                # Check if box i is fully inside box j
+                fully_contained = (
+                    x1_j - tolerance <= x1_i and
+                    y1_j - tolerance <= y1_i and
+                    x2_j + tolerance >= x2_i and
+                    y2_j + tolerance>= y2_i
+                )
+                
+                if fully_contained:
+                    # Mark box i for removal (it's contained by box j)
+                    keep[i] = False
+                    break
+        
+        # Gather indices of boxes to keep
+        keep_idx = [idx for idx, val in enumerate(keep) if val]
+
+        # Filter all attributes in `self.keys`
+        for key in self.keys:
+            setattr(self, key, getattr(self, key)[keep_idx])
+
+        print("Done with containment suppression for object_id == 2")
+
+    def apply_mask_dot_nms_category1(self, mask_threshold=0.5):
+        """
+        For objects with category 1, compares each pair of binary masks using a dot product
+        measure. For each pair (i, j) among masks with object_id == 1:
+        
+        - Compute ratio1 = (mask_i * mask_j).sum() / (mask_j.sum() + eps)
+        - Compute ratio2 = (mask_i * mask_j).sum() / (mask_i.sum() + eps)
+        
+        If ratio1 equals 1, then every pixel of mask_j is also set in mask_i, meaning mask_j
+        is completely contained in mask_i. If ratio2 equals 1, then mask_i is fully contained in
+        mask_j. In these cases, the mask with the lower score (or the smaller area) is suppressed.
+        
+        All attributes in self.keys are updated accordingly.
+        """
+        import torch
+        eps = 1e-6  # small constant to avoid division by zero
+        
+        # Get indices for detections with category 1
+        cat1_idx = (self.object_ids == 1).nonzero(as_tuple=True)[0]
+        
+        # Binarize the masks using a threshold
+        binary_masks = (self.masks > mask_threshold).float()  # shape: [N, H, W]
+        
+        num_dets = len(self.masks)
+        # Create a boolean mask for all detections (True = keep)
+        keep = torch.ones(num_dets, dtype=torch.bool, device=self.masks.device)
+        
+        # Compare every pair among the category 1 detections
+        for i in range(len(cat1_idx)):
+            idx_i = cat1_idx[i].item()
+            mask_i = binary_masks[idx_i]
+            sum_i = mask_i.sum() + eps  # total "on" pixels in mask_i
+            
+            for j in range(i + 1, len(cat1_idx)):
+                idx_j = cat1_idx[j].item()
+                mask_j = binary_masks[idx_j]
+                sum_j = mask_j.sum() + eps  # total "on" pixels in mask_j
+                
+                
+                # Compute the intersection between the two masks
+                intersection = (mask_i * mask_j).sum()
+                print("intersection: ", intersection)
+                # Ratio: how much of mask_j is covered by mask_i
+                # Det här är a*b/sum(b)
+                ratio1 = intersection / sum_j
+                print("ratio1: ", ratio1)
+                # Ratio: how much of mask_i is covered by mask_j
+                # Det här är a*b/sum(a)
+                ratio2 = intersection / sum_i  
+                print("ratio2: ", ratio2)
+                
+                # If mask_i completely covers mask_j, then ratio1 should be close to 1
+                if ratio1 >= 0.97:
+                    # Option: keep the one with the higher score
+                    if self.scores[idx_i] >= self.scores[idx_j]:
+                        keep[idx_j] = False  # suppress mask_j
+                    else:
+                        keep[idx_i] = False  # suppress mask_i
+                
+                # Similarly, if mask_j completely covers mask_i, ratio2 will be 1
+                if ratio2 >= 0.97:
+                    if self.scores[idx_j] >= self.scores[idx_i]:
+                        keep[idx_i] = False  # suppress mask_i
+                    else:
+                        keep[idx_j] = False  # suppress mask_j
+                        
+        # Update all attributes in self.keys to include only the kept detections
+        for key in self.keys:
+            setattr(self, key, getattr(self, key)[keep])
+
+
+    def check_object_ids(self):
+        # Print each id and the corresponding bounding box
+        for i in range(len(self.object_ids)):
+            print(f"Object ID: {self.object_ids[i]}")
+            print(f"Bounding Box: {self.boxes[i]}")
+
 
     def add_attribute(self, key, value):
         setattr(self, key, value)
@@ -156,9 +290,6 @@ class Detections:
         """
         scene_id, image_id, category_id, bbox, time
         """
-
-        # Debug
-        print(f"Object IDs before assigning: {self.object_ids}")
 
         boxes = xyxy_to_xywh(self.boxes)
         results = {

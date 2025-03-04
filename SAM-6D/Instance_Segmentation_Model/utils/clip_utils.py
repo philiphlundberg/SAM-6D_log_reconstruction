@@ -63,7 +63,8 @@ def retriev(elements, search_text, model, preprocess, device):
     
     # Compute scaled cosine similarity scores and softmax them
     probs = 100.0 * image_features @ text_features.T
-    return probs[:, 0].softmax(dim=0)
+    # return probs[:, 0].softmax(dim=0)
+    return probs[:, 0] # shape [N]
 
 def get_indices_of_values_above_threshold(values, threshold):
     """
@@ -83,14 +84,36 @@ def load_masks():
     """
     raise NotImplementedError("Implement load_masks() to return your SAM proposals")
 
-def run_extract_category(masks, boxes, image, search_text="log", threshold=0.05):
+def add_padding(boxes, padding, img_size=(512, 512)):
+    """
+    Expands bounding boxes with padding, keeping them within image bounds.
+    
+    Args:
+        boxes (torch.Tensor): Tensor of shape (N, 4) with [x_min, y_min, x_max, y_max].
+        padding (int): Number of pixels to expand in all directions.
+        img_size (tuple): Image dimensions (width, height).
+    
+    Returns:
+        torch.Tensor: Padded bounding boxes.
+    """
+    x_min, y_min, x_max, y_max = boxes[:, 0], boxes[:, 1], boxes[:, 2], boxes[:, 3]
+
+    # Expand bounding boxes
+    x_min = (x_min - padding).clamp(min=0)
+    y_min = (y_min - padding).clamp(min=0)
+    x_max = (x_max + padding).clamp(max=img_size[0])
+    y_max = (y_max + padding).clamp(max=img_size[1])
+
+    return torch.stack([x_min, y_min, x_max, y_max], dim=1)
+
+def run_extract_category(masks, non_padded_boxes, padding, image, search_text="log", threshold=0.05):
+    # Add padding in some way
+    boxes = add_padding(non_padded_boxes, padding)
 
     # Crop regions defined by each segmentation proposal using its bounding box.
     cropped_boxes = []
     for mask, box in zip(masks, boxes):
         bbox_xyxy = convert_box_xywh_to_xyxy(box)
-        # Print the bounding box coordinates
-        print("Bounding box coordinates:", bbox_xyxy)
         segmented = segment_image(image, mask)
         cropped = segmented.crop(bbox_xyxy)
         cropped_boxes.append(cropped)
@@ -102,6 +125,6 @@ def run_extract_category(masks, boxes, image, search_text="log", threshold=0.05)
     # Retrieve and score the cropped proposals with CLIP
     scores = retriev(cropped_boxes, search_text, model, preprocess, device)
     indices = get_indices_of_values_above_threshold(scores, threshold)
-    print(f"Indices of values above threshold: {indices}")
+    print(f"Indices of values above threshold: {indices} and their respective scores: {scores[indices]}")
 
-    return indices
+    return indices, boxes

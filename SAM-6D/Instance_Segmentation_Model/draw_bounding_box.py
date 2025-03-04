@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 
-def draw_bounding_boxes(image_path, bboxes, output_path=None):
+def draw_bounding_boxes(image_path, bboxes, output_path=None, format="xyxy"):
     """
     Loads an image and visualizes bounding boxes.
     
@@ -28,10 +28,15 @@ def draw_bounding_boxes(image_path, bboxes, output_path=None):
     # Convert tensor to numpy array if necessary
     if hasattr(bboxes, "cpu"):
         bboxes = bboxes.cpu().numpy()
-    
+
     # Draw each bounding box
     for bbox in bboxes:
-        x1, y1, x2, y2 = bbox
+        if format == "xywh":
+            x1, y1, w, h = bbox
+            x2 = x1 + w
+            y2 = y1 + h
+        elif format == "xyxy":
+            x1, y1, x2, y2 = bbox
         cv2.rectangle(image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)  # Blue box
     
     # Display or save the image
@@ -44,14 +49,15 @@ def draw_bounding_boxes(image_path, bboxes, output_path=None):
 
 # Example usage:
 if __name__ == "__main__":
-    image_path = "example.jpg"  # Change to your image file
+    image_path = "/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/SAM-6D/SAM-6D/Data/Example/Perspective/logs3.png"  # Change to your image file
     # For demonstration purposes, we'll create a sample numpy array resembling a tensor
     import numpy as np
     sample_boxes = np.array([
-        [0, 0, 511, 511],
-        [164, 114, 190, 329],
-        [124, 231, 168, 268],
-        [138, 113, 191, 329],
-        [124, 231, 304, 362]
+        [170, 178, 177, 138],
+        [118, 311, 184, 125],
+        [359, 132, 39, 214],
+        [257, 178, 90, 70],
+        [170, 252, 83, 64],
+        [100, 387, 36, 17]
     ])
-    draw_bounding_boxes(image_path, sample_boxes)
+    draw_bounding_boxes(image_path, sample_boxes, output_path="/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/SAM-6D/SAM-6D/Data/Example/Perspective/res.jpg")
