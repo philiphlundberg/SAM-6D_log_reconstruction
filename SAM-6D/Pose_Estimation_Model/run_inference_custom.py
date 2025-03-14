@@ -346,8 +346,24 @@ if __name__ == "__main__":
     pred_rot = out['pred_R'].detach().cpu().numpy()
     pred_trans = out['pred_t'].detach().cpu().numpy() * 1000
 
+    # Rotate the predicted rotation matrix to match AGX world coordinates
+    rot_around_x = np.array([[-0.98923024, 0.14379967, 0.02729341],
+                            [0.14491907, 0.93610227, 0.320486],
+                            [0.02053634, 0.32098989,-0.94685996]])
+    pred_rot_AGX = np.matmul(pred_rot, rot_around_x)
+    pred_trans_AGX = np.matmul(pred_trans, rot_around_x)
+    print(pred_trans_AGX)
+    pred_trans_AGX[2] = pred_trans_AGX[2] + 5000
+
     print("=> saving results ...")
     os.makedirs(f"{cfg.output_dir}/sam6d_results", exist_ok=True)
+    for idx, det in enumerate(detections):
+        detections[idx]['R'] = list(pred_rot_AGX[idx].tolist())
+        detections[idx]['t'] = list(pred_trans_AGX[idx].tolist())
+
+    with open(os.path.join(f"{cfg.output_dir}/sam6d_results", 'detection_pem_AGX.json'), "w") as f:
+        json.dump(detections, f)
+
     for idx, det in enumerate(detections):
         detections[idx]['score'] = float(pose_scores[idx])
         detections[idx]['R'] = list(pred_rot[idx].tolist())

@@ -2,7 +2,7 @@ from PIL import Image
 import numpy as np
 
 # Load the depth image
-depth_image_path = "/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/SAM-6D/SAM-6D/Data/Example/Perspective/persp__depth_log.png"
+depth_image_path = "/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/snapshot_depth.png"
 # Smallest number 0, largest number 65535
 depth_image = Image.open(depth_image_path)
 
