@@ -224,17 +224,23 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     boxes = detections.boxes
     print(f"Detection masks: {detections.masks}")
 
-    # # Add some padding to the boxes to make it easier for CLIP
-    padding = 20
+    # # # Add some padding to the boxes to make it easier for CLIP
+    # padding = 20
 
-    # HÄR TROR JAG ATT JAG VILL LÄGGA TILL CLIP
-    indices, boxes = run_extract_category(masks, boxes, padding, rgb, search_text=search_text, threshold=22)
-    detections.masks = detections.masks[indices]
-    detections.boxes = detections.boxes[indices]
-    detections.boxes = add_padding(detections.boxes, padding)
-    boxes_after = detections.boxes
+    # # HÄR TROR JAG ATT JAG VILL LÄGGA TILL CLIP
+    # indices, boxes = run_extract_category(masks, boxes, padding, rgb, search_text=search_text, threshold=22)
+    # detections.masks = detections.masks[indices]
+    # detections.boxes = detections.boxes[indices]
+    # detections.boxes = add_padding(detections.boxes, padding)
+    # boxes_after = detections.boxes
 
-    print(f"Filtered detections boxes: {detections.boxes}")
+    # print(f"Filtered detections boxes: {detections.boxes}")
+
+    # Remove the box that is the whole image, since it is not a detection
+    detections.masks = detections.masks[1:]
+    detections.boxes = detections.boxes[1:]
+    masks = detections.masks
+    boxes = detections.boxes
 
 
     query_decriptors, query_appe_descriptors = model.descriptor_model.forward(np.array(rgb), detections)
@@ -282,7 +288,7 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     ## Use this if you want to classify to two classes (log or not log)
     detections.add_attribute("scores", final_score)
     # Assign object ID 1 if final_score > 0.3, else 0
-    object_ids = (final_score > 0.3).long()
+    object_ids = (final_score > 0.4).long()
     detections.add_attribute("object_ids", object_ids)
     print(f"Assigned Object IDs: {object_ids}")
 

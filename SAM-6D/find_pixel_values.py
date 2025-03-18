@@ -3,7 +3,7 @@ import numpy as np
 
 # Load the depth image
 depth_image_path = "/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/snapshot_depth.png"
-# Smallest number 0, largest number 65535
+# Smallest number 0, largest number 65535 (16-bit depth image) but we want to map it to 0-10000 to match mm depth
 depth_image = Image.open(depth_image_path)
 
 # Convert image to numpy array
