@@ -321,6 +321,9 @@ class Instance_Segmentation_Model(pl.LightningModule):
         """
         Based on the best template, calculate appearance similarity indicated by appearance score
         """
+        print("best_pose", best_pose)
+        print("pred_objects_idx", pred_objects_idx)
+
         con_idx = torch.concatenate((pred_objects_idx[None, :], best_pose[None, :]), dim=0)
         ref_appe_descriptors = self.ref_data["appe_descriptors"][con_idx[0, ...], con_idx[1, ...], ...] # N_query x N_patch x N_feature
 
