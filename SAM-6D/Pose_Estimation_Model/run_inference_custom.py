@@ -346,32 +346,6 @@ if __name__ == "__main__":
     pred_rot = out['pred_R'].detach().cpu().numpy()
     pred_trans = out['pred_t'].detach().cpu().numpy() * 1000
 
-
-    ### TRANSLATION MAPPING TO AGX WORKING ###
-    print(f"Initial predicted translation: ", pred_trans)
-
-    # Rotate the predicted camera frame around the x-axis 180 degrees
-    rot_around_x = np.array([[1, 0, 0], [0, -1, 0], [0, 0, -1]])
-    # Then, rotate around z-axis 90 degrees
-    rot_around_z = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
-
-    # Translate the predicted camera frame to match AGX world coordinates
-    translation = np.array([0, 0, -5000])
-    pred_trans_1_0 = np.add(pred_trans, translation)
-    print(f"Moved coordinate frame to the ground: ", pred_trans_1_0)
-
-    pred_trans_2_1 = np.matmul(pred_trans_1_0, rot_around_x)
-    print("Rotated coordinate frame around x-axis: ", pred_trans_2_1)
-
-    pred_trans_3_2 = np.matmul(pred_trans_2_1, rot_around_z)
-    print("Rotated coordinate frame around z-axis: ", pred_trans_3_2)
-
-    ### ROTATION MAPPING TO AGX ###
-    # New try, find how the ordinary rotation output is.
-    print("Rotation: ", pred_rot)
-    cad_rot = np.array([[0, -1, 0], [1, 0, 0], [0, 0, 1]])
-    pred_rot_1_0 = pred_rot @ cad_rot
-
     print("=> saving results ...")
     os.makedirs(f"{cfg.output_dir}/sam6d_results", exist_ok=True)
 
@@ -382,16 +356,6 @@ if __name__ == "__main__":
 
     with open(os.path.join(f"{cfg.output_dir}/sam6d_results", 'detection_pem.json'), "w") as f:
         json.dump(detections, f)
-
-    for idx, det in enumerate(detections):
-        detections[idx]['R'] = list(pred_rot_1_0[idx].tolist())
-        detections[idx]['t'] = list(pred_trans_3_2[idx].tolist())  
-
-    # Extract only R and t **after** assignment
-    filtered_detections = [{"R": det["R"], "t": det["t"]} for det in detections]
-    # Save only R and t
-    with open(os.path.join(f"{cfg.output_dir}/sam6d_results", 'detection_pem_AGX.json'), "w") as f:
-        json.dump(filtered_detections, f, indent=4)
 
     print("=> visualizating ...")
     save_path = os.path.join(f"{cfg.output_dir}/sam6d_results", 'vis_pem.png')
