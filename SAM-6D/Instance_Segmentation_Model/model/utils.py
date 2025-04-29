@@ -222,34 +222,71 @@ class Detections:
                 
                 # Compute the intersection between the two masks
                 intersection = (mask_i * mask_j).sum()
-                print("intersection: ", intersection)
+                # print("intersection: ", intersection)
                 # Ratio: how much of mask_j is covered by mask_i
                 # Det här är a*b/sum(b)
                 ratio1 = intersection / sum_j
-                print("ratio1: ", ratio1)
+                # print("ratio1: ", ratio1)
                 # Ratio: how much of mask_i is covered by mask_j
                 # Det här är a*b/sum(a)
                 ratio2 = intersection / sum_i  
-                print("ratio2: ", ratio2)
+                # print("ratio2: ", ratio2)
                 
-                # If mask_i completely covers mask_j, then ratio1 should be close to 1
+                # If mask_i completely covers mask_j
                 if ratio1 >= 0.97:
-                    # Option: keep the one with the higher score
-                    if self.scores[idx_i] >= self.scores[idx_j]:
-                        keep[idx_j] = False  # suppress mask_j
+                    if sum_i >= sum_j:
+                        keep[idx_j] = False  # suppress smaller mask_j
                     else:
-                        keep[idx_i] = False  # suppress mask_i
-                
-                # Similarly, if mask_j completely covers mask_i, ratio2 will be 1
+                        keep[idx_i] = False  # suppress smaller mask_i
+
+                # If mask_j completely covers mask_i
                 if ratio2 >= 0.97:
-                    if self.scores[idx_j] >= self.scores[idx_i]:
-                        keep[idx_i] = False  # suppress mask_i
+                    if sum_j >= sum_i:
+                        keep[idx_i] = False
                     else:
-                        keep[idx_j] = False  # suppress mask_j
+                        keep[idx_j] = False
+
+                # If mask_i completely covers mask_j, then ratio1 should be close to 1
+                # if ratio1 >= 0.97:
+                #     # Option: keep the one with the higher score
+                #     if self.scores[idx_i] >= self.scores[idx_j]:
+                #         keep[idx_j] = False  # suppress mask_j
+                #     else:
+                #         keep[idx_i] = False  # suppress mask_i
+                
+                # # Similarly, if mask_j completely covers mask_i, ratio2 will be 1
+                # if ratio2 >= 0.97:
+                #     if self.scores[idx_j] >= self.scores[idx_i]:
+                #         keep[idx_i] = False  # suppress mask_i
+                #     else:
+                #         keep[idx_j] = False  # suppress mask_j
                         
         # Update all attributes in self.keys to include only the kept detections
         for key in self.keys:
             setattr(self, key, getattr(self, key)[keep])
+
+    def apply_mask_area_filter(self, min_area=500, mask_threshold=0.5):
+        """
+        Removes detections whose binary mask area is below a specified threshold.
+
+        Parameters:
+        - min_area (int): Minimum number of pixels required for a mask to be kept.
+        - mask_threshold (float): Threshold to binarize the masks.
+        """
+
+        # Binarize the masks using the specified threshold
+        binary_masks = (self.masks > mask_threshold).float()  # Shape: [N, H, W]
+
+        # Compute the area (number of 'on' pixels) for each mask
+        mask_areas = binary_masks.view(binary_masks.shape[0], -1).sum(dim=1)
+
+        # Create a boolean mask indicating which detections to keep
+        keep = mask_areas >= min_area
+
+        # Update all relevant attributes to include only the kept detections
+        for key in self.keys:
+            setattr(self, key, getattr(self, key)[keep])
+
 
 
     def check_object_ids(self):

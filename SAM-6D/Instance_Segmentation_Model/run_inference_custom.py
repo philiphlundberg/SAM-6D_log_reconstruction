@@ -95,6 +95,41 @@ def visualize(rgb, detections, save_path="tmp.png"):
 
     return concat
 
+def visualize_all(rgb, detections, save_path="tmp.png"):
+    img = rgb.copy()
+    gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
+    img = cv2.cvtColor(gray, cv2.COLOR_GRAY2RGB)
+    colors = distinctipy.get_colors(len(detections))  # one color per detection
+    alpha = 0.33
+
+    for idx, det in enumerate(detections):
+        mask = rle_to_mask(det["segmentation"])
+        edge = canny(mask)
+        edge = binary_dilation(edge, np.ones((2, 2)))
+
+        # Pick color based on detection index
+        r = int(255 * colors[idx][0])
+        g = int(255 * colors[idx][1])
+        b = int(255 * colors[idx][2])
+
+        img[mask, 0] = alpha * r + (1 - alpha) * img[mask, 0]
+        img[mask, 1] = alpha * g + (1 - alpha) * img[mask, 1]
+        img[mask, 2] = alpha * b + (1 - alpha) * img[mask, 2]
+        img[edge, :] = 255  # Highlight edges in white
+
+    img = Image.fromarray(np.uint8(img))
+    img.save(save_path)
+    prediction = Image.open(save_path)
+
+    # Concatenate original and prediction images
+    img = np.array(img)
+    concat = Image.new('RGB', (img.shape[1] + prediction.size[0], img.shape[0]))
+    concat.paste(rgb, (0, 0))
+    concat.paste(prediction, (img.shape[1], 0))
+
+    return concat
+
+
 # def visualize(rgb, detections, save_path="tmp.png"):
 #     img = rgb.copy()
 #     gray = cv2.cvtColor(np.array(img), cv2.COLOR_RGB2GRAY)
@@ -222,7 +257,6 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     # Extract masks as the first entry from detections
     masks = detections.masks
     boxes = detections.boxes
-    print(f"Detection masks: {detections.masks}")
 
     # # # Add some padding to the boxes to make it easier for CLIP
     # padding = 20
@@ -281,23 +315,31 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
 
     # final score
     final_score = (semantic_score + appe_scores + geometric_score*visible_ratio) / (1 + 1 + visible_ratio)
-    print("Final score: ", final_score)
+    print(f"Semantic score: {semantic_score}")
+    print(f"Appearance score: {appe_scores}")
+    print(f"Geometric score: {geometric_score}")
+    print(f"Visible ratio: {visible_ratio}")
+    print(f"Final score: {final_score}")
 
+    # If visible ratio is 0, set final score to 0
+    # final_score[visible_ratio == 0] = 0
 
 
     ## Use this if you want to classify to two classes (log or not log)
     detections.add_attribute("scores", final_score)
     # Assign object ID 1 if final_score > 0.3, else 0
-    object_ids = (final_score > 0.4).long()
+    object_ids = (final_score >= 0.1).long()
     detections.add_attribute("object_ids", object_ids)
     print(f"Assigned Object IDs: {object_ids}")
 
-    detections.check_object_ids()
+    # detections.check_object_ids()
     # Use this to suppress overlapping boxes
     # detections.apply_containment_suppression_for_id_2()  # Suppress overlapping boxes 
     # Use this to suppress overlapping masks
+    detections.apply_mask_area_filter()
     detections.apply_mask_dot_nms_category1()
-    detections.check_object_ids()
+    # detections.check_object_ids()
+    # boxes = detections.boxes
     
     ## Use this if you have a predefined list of object IDs
     # detections.add_attribute("scores", final_score)
@@ -306,7 +348,6 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     # # detections.add_attribute("object_ids", pred_idx_objects)
     # print(f"Assigned Object IDs: {pred_idx_objects}")
 
-    print(f"Detection boxes before saving: {detections.boxes}")
 
     detections.to_numpy()
     save_path = f"{output_dir}/sam6d_results/detection_ism"
@@ -335,7 +376,6 @@ if __name__ == "__main__":
     parser.add_argument("--search_text", default="log", type=str, help="search_text of CLIP")
     args = parser.parse_args()
     os.makedirs(f"{args.output_dir}/sam6d_results", exist_ok=True)
-    print("search text input: ", args.search_text)
     run_inference(
         args.segmentor_model, args.output_dir, args.cad_path, args.rgb_path, args.depth_path, args.cam_path, 
         stability_score_thresh=args.stability_score_thresh, search_text=args.search_text
