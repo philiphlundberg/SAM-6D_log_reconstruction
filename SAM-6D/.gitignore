@@ -5,3 +5,6 @@ Data/Example/outputs/
 Data/Example/Testbilder/
 Data/Example/Testing
 Data/Example/outputs/sam6d_results/RandomOutputs
+Instance_Segmentation_Model/checkpoints/
+Pose_Estimation_Model/checkpoints/
+*.blend
