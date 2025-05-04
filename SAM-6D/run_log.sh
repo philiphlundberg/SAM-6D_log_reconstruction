@@ -1,7 +1,7 @@
 #!/bin/bash
 # set the paths
 export CAD_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/SAM-6D/SAM-6D/Data/Example/Perspective/cyl2.ply   # path to a given cad model(mm)
-export RGB_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/pile0/pile_00000/Image0004.png
+export RGB_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/Render_2025-04-29_13:50/pile_00000/Image00018.png
 # export RGB_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/snapshot_rgb.png         # path to a given RGB image
 export DEPTH_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/snapshot_depth.png       # path to a given depth map(mm)
 export CAMERA_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/SAM-6D/SAM-6D/Data/Example/camera_logs.json    # path to given camera intrinsics
@@ -9,9 +9,11 @@ export OUTPUT_DIR=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstr
 export BLENDER_PATH=/home/philiph/Blender/blender-3.3.1-linux-x64
 export HF_OUTPUT_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/heightfields/heightfield.npz
 
+source /home/philiph/miniconda3/etc/profile.d/conda.sh
+# conda init
+conda activate sam6d
 
-# Go back and run the AGX thingy
-cd ../../
+
 export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
 export VIRTUALENVWRAPPER_VIRTUALENV=/usr/bin/virtualenv
 source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
@@ -41,14 +43,14 @@ cd Render
 ###
 
 export SEGMENTOR_MODEL=sam
-export STABILITY_SCORE_THRESH=0.977
+export STABILITY_SCORE_THRESH=0.97
 export SEARCH_TEXT="A cut wooden log."
 
 
 ### Run instance segmentation model
 cd ../Instance_Segmentation_Model
-python run_inference_custom.py --segmentor_model $SEGMENTOR_MODEL --output_dir $OUTPUT_DIR --cad_path $CAD_PATH \
---rgb_path $RGB_PATH --depth_path $DEPTH_PATH --cam_path $CAMERA_PATH --stability_score_thresh $STABILITY_SCORE_THRESH --search_text "$SEARCH_TEXT"   
+# python run_inference_custom.py --segmentor_model $SEGMENTOR_MODEL --output_dir $OUTPUT_DIR --cad_path $CAD_PATH \
+# --rgb_path $RGB_PATH --depth_path $DEPTH_PATH --cam_path $CAMERA_PATH --stability_score_thresh $STABILITY_SCORE_THRESH --search_text "$SEARCH_TEXT"   
 ###
 
 
@@ -59,8 +61,8 @@ export DET_SCORE_THRESH=0.32
 
 ### Run pose estimation model
 cd Pose_Estimation_Model
-python run_inference_custom.py --output_dir $OUTPUT_DIR --cad_path $CAD_PATH --rgb_path $RGB_PATH --depth_path $DEPTH_PATH \
---cam_path $CAMERA_PATH --seg_path $SEG_PATH --det_score_thresh $DET_SCORE_THRESH
+# python run_inference_custom.py --output_dir $OUTPUT_DIR --cad_path $CAD_PATH --rgb_path $RGB_PATH --depth_path $DEPTH_PATH \
+# --cam_path $CAMERA_PATH --seg_path $SEG_PATH --det_score_thresh $DET_SCORE_THRESH
 ###
 
 ### Options for clip:
@@ -75,31 +77,30 @@ python run_inference_custom.py --output_dir $OUTPUT_DIR --cad_path $CAD_PATH --r
 cd ../../../
 workon autoscene
 
-####### RUNNING AGX-PIPELINE #######
-### Create a HeightField from the depth map
+# ###### RUNNING AGX-PIPELINE #######
+# ## Create a HeightField from the depth map
 # python generate_heightfield.py --depth_path "$DEPTH_PATH" --output "$HF_OUTPUT_PATH" \
 # --det_dir "$OUTPUT_DIR/sam6d_results/detection_ism.json" --downsampling 4 --camera_yaml "settings/settings.yml"
-###
+# ##
 
 
 ### Visualization before
-# python run.py --environment logpile --settings-file settings/settings.yml --spawner TreeLog:3 \
-# --controller AddObserver DoNothing LoadLogsFromJSON:'sam6d_results/detection_pem.json' store_pose='Before' DoNothing DoNothing DoNothing
+python run.py --environment logpile --settings-file settings/settings.yml --spawner TreeLog:3 \
+--controller AddObserver DoNothing:120 LoadLogsFromJSON DoNothing:600
 ###
 
 
-### Optimization
+# ## Optimization
 # python run.py --environment logpile --settings-file settings/settings.yml --agxOnly --spawner TreeLog:3 \
 # --controller AddObserver HeightfieldOptimizer:'sam6d_results/detection_pem.json' 
-###
+# ##
 
 
 ### Visualization after
-# python run.py --environment logpile --settings-file settings/settings.yml --spawner TreeLog:3 \
-# --controller AddObserver DoNothing LoadLogsFromJSON:'sam6d_results/detection_pem.json' store_pose=After DoNothing DoNothing DoNothing
+python run.py --environment logpile --settings-file settings/settings_optimized.yml --spawner TreeLog:3 \
+--controller AddObserver DoNothing:120 LoadLogsFromJSON DoNothing:inf
 
-# python run.py --environment logpile --settings-file settings/settings_optimized.yml --spawner TreeLog:3 \
-# --controller AddObserver DoNothing LoadLogsFromJSON:'sam6d_results/detection_pem.json' store_pose=After DoNothing DoNothing DoNothing
+
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:10 \
 # --controller AddObserver LoadLogsFromJSON:'sam6d_results/detection_pem.json' 
 ###

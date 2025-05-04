@@ -328,7 +328,7 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     ## Use this if you want to classify to two classes (log or not log)
     detections.add_attribute("scores", final_score)
     # Assign object ID 1 if final_score > 0.3, else 0
-    object_ids = (final_score >= 0.1).long()
+    object_ids = (final_score >= 0.35).long()
     detections.add_attribute("object_ids", object_ids)
     print(f"Assigned Object IDs: {object_ids}")
 
