@@ -1,13 +1,12 @@
 #!/bin/bash
 # set the paths
 export CAD_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/SAM-6D/SAM-6D/Data/Example/Perspective/cyl2.ply   # path to a given cad model(mm)
-export RGB_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/Render_2025-04-29_13:50/pile_00000/Image00018.png
-# export RGB_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/snapshot_rgb.png         # path to a given RGB image
-export DEPTH_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/snapshot_depth.png       # path to a given depth map(mm)
+# export RGB_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/Test1/4/snapshot_rgb.png         # path to a given RGB image
+export DEPTH_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/Test2/1/snapshot_depth.png       # path to a given depth map(mm)
 export CAMERA_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/SAM-6D/SAM-6D/Data/Example/camera_logs.json    # path to given camera intrinsics
-export OUTPUT_DIR=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction         # path to a pre-defined file for saving results
+export OUTPUT_DIR=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction        # path to a pre-defined file for saving results
 export BLENDER_PATH=/home/philiph/Blender/blender-3.3.1-linux-x64
-export HF_OUTPUT_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/heightfields/heightfield.npz
+export HF_OUTPUT_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/Test2/1/heightfields/heightfield.npz
 
 source /home/philiph/miniconda3/etc/profile.d/conda.sh
 # conda init
@@ -20,8 +19,8 @@ source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
 workon autoscene
 
 ####### CREATING SIMULATION IMAGES #######
-python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:1 \
---controller AddObserver DropLogs DoNothing:inf
+# python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
+# --controller DoNothing:120 DropLogs DoNothing:3600 LogStateRecorder TakeSnapshot
 
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
 # --controller LoadLogsFromNPZ DoNothing TakeSnapshot
@@ -79,31 +78,9 @@ workon autoscene
 
 # ###### RUNNING AGX-PIPELINE #######
 # ## Create a HeightField from the depth map
-# python generate_heightfield.py --depth_path "$DEPTH_PATH" --output "$HF_OUTPUT_PATH" \
-# --det_dir "$OUTPUT_DIR/sam6d_results/detection_ism.json" --downsampling 4 --camera_yaml "settings/settings.yml"
+python generate_heightfield.py --depth_path "$DEPTH_PATH" --output "$HF_OUTPUT_PATH" \
+--det_dir "$OUTPUT_DIR/sam6d_results/detection_ism.json" --downsampling 4 --camera_yaml "settings/settings.yml"
 # ##
-
-
-### Visualization before
-# python run.py --environment logpile --settings-file settings/settings.yml --spawner TreeLog:3 \
-# --controller AddObserver DoNothing:120 LoadLogsFromJSON DoNothing:600
-###
-
-
-# ## Optimization
-# python run.py --environment logpile --settings-file settings/settings.yml --agxOnly --spawner TreeLog:3 \
-# --controller AddObserver HeightfieldOptimizer:'sam6d_results/detection_pem.json' 
-# ##
-
-
-### Visualization after
-# python run.py --environment logpile --settings-file settings/settings_optimized.yml --spawner TreeLog:3 \
-# --controller AddObserver DoNothing:120 LoadLogsFromJSON DoNothing:3600 PoseEvaluator
-
-
-# python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:10 \
-# --controller AddObserver LoadLogsFromJSON:'sam6d_results/detection_pem.json' 
-###
 #####################################
 
 deactivate
