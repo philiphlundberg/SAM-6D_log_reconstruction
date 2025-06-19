@@ -18,11 +18,11 @@ source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
 workon autoscene
 
 ####### CREATING SIMULATION IMAGES #######
-python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:5 \
---controller DoNothing:120 DropLogs DoNothing:1800 TakeSnapshot LogStateRecorder
-
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
-# --controller LoadLogsFromNPZ DoNothing TakeSnapshot
+# --controller DoNothing:120 LoadLogsFromNPZ DoNothing:120 LogStateRecorder
+
+python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
+--controller DoNothing:30 DropLogs DoNothing:inf 
 
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:4 \
 # --controller DropAndEmbedLogs LogStateRecorder TakeSnapshot

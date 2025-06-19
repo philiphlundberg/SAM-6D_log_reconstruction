@@ -1,8 +1,8 @@
 #!/bin/bash
 # set the paths
 export CAD_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/SAM-6D/SAM-6D/Data/Example/Perspective/cyl2.ply   # path to a given cad model(mm)
-export RGB_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/Test2/1/snapshot_rgb.png         # path to a given RGB image
-export DEPTH_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/Test2/1/snapshot_depth.png       # path to a given depth map(mm)
+export RGB_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/Render_2025-06-03_14:43/pile_00005/pip1.png          # path to a given RGB image
+export DEPTH_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/Render_2025-06-03_14:43/pile_00005/pipdepth.png        # path to a given depth map(mm)
 export CAMERA_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/SAM-6D/SAM-6D/Data/Example/camera_logs.json    # path to given camera intrinsics
 export OUTPUT_DIR=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/        # path to a pre-defined file for saving results
 export BLENDER_PATH=/home/philiph/Blender/blender-3.3.1-linux-x64

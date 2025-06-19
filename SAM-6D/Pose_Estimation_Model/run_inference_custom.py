@@ -348,6 +348,7 @@ if __name__ == "__main__":
 
     print("=> saving results ...")
     os.makedirs(f"{cfg.output_dir}/sam6d_results", exist_ok=True)
+    os.makedirs(f"{cfg.output_dir}/Test2/1/sam6d_results", exist_ok=True)
 
     for idx, det in enumerate(detections):
         detections[idx]['score'] = float(pose_scores[idx])
@@ -356,14 +357,19 @@ if __name__ == "__main__":
 
     with open(os.path.join(f"{cfg.output_dir}/sam6d_results", 'detection_pem.json'), "w") as f:
         json.dump(detections, f)
+    with open(os.path.join(f"{cfg.output_dir}/Test2/1/sam6d_results", 'detection_pem.json'), "w") as f:
+        json.dump(detections, f)
 
     print("=> visualizating ...")
     save_path = os.path.join(f"{cfg.output_dir}/sam6d_results", 'vis_pem.png')
+    save_path2 = os.path.join(f"{cfg.output_dir}/Test2/1/sam6d_results", 'vis_pem.png')
     # Print the one with the highest score
     # valid_masks = pose_scores == pose_scores.max()
     # Print all the predictions
     valid_masks = np.ones_like(pose_scores, dtype=bool)
     K = input_data['K'].detach().cpu().numpy()[valid_masks]
     vis_img = visualize(img, pred_rot[valid_masks], pred_trans[valid_masks], model_points*1000, K, save_path)
+    vis_img2 = visualize(img, pred_rot[valid_masks], pred_trans[valid_masks], model_points*1000, K, save_path2)
     vis_img.save(save_path)
+    vis_img2.save(save_path2)
 

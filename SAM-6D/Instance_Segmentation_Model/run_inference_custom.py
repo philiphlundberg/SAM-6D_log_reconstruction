@@ -347,7 +347,7 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     # detections.add_attribute("object_ids", torch.zeros_like(final_score))
     # # detections.add_attribute("object_ids", pred_idx_objects)
     # print(f"Assigned Object IDs: {pred_idx_objects}")
-
+    boxes_after = detections.boxes
 
     detections.to_numpy()
     save_path = f"{output_dir}/sam6d_results/detection_ism"
@@ -355,14 +355,20 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     detections = convert_npz_to_json(idx=0, list_npz_paths=[save_path+".npz"])
     save_json_bop23(save_path+".json", detections)
 
+    save_path2 = f"{output_dir}/Test2/1/sam6d_results/detection_ism.json"
+    save_json_bop23(save_path2+".json", detections)
+    
+
     for det in detections:
         print(f"Detection: Score={det['score']}, Category ID={det['category_id']}")
 
-    draw_bounding_boxes(rgb_path, boxes, f"{output_dir}/sam6d_results/vis_boxes_before.png")
-    # draw_bounding_boxes(rgb_path, boxes_after, f"{output_dir}/sam6d_results/vis_boxes_after.png")
+    draw_bounding_boxes(rgb_path, boxes, f"{output_dir}/Test2/1/sam6d_results/vis_boxes_before.png")
+    draw_bounding_boxes(rgb_path, boxes_after, f"{output_dir}/Test2/1/sam6d_results/vis_boxes_after.png")
     # vis_boxes.save(f"{output_dir}/sam6d_results/vis_boxes.png")
     vis_img = visualize(rgb, detections, f"{output_dir}/sam6d_results/vis_ism.png")
+    vis_img = visualize(rgb, detections, f"{output_dir}/Test2/1/sam6d_results/vis_ism.png")
     vis_img.save(f"{output_dir}/sam6d_results/vis_ism.png")
+    vis_img.save(f"{output_dir}/Test2/1/sam6d_results/vis_ism.png")
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -376,6 +382,7 @@ if __name__ == "__main__":
     parser.add_argument("--search_text", default="log", type=str, help="search_text of CLIP")
     args = parser.parse_args()
     os.makedirs(f"{args.output_dir}/sam6d_results", exist_ok=True)
+    os.makedirs(f"{args.output_dir}/Test2/1/sam6d_results", exist_ok=True)
     run_inference(
         args.segmentor_model, args.output_dir, args.cad_path, args.rgb_path, args.depth_path, args.cam_path, 
         stability_score_thresh=args.stability_score_thresh, search_text=args.search_text
