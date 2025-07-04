@@ -96,13 +96,13 @@ workon autoscene
 # ###
 
 # # ### Store pose with just initial guess
-python run.py --environment logpile --settings-file Test2/settings_intermediate.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:120 LoadLogsFromJSON DoNothing:3000
+# python run.py --environment logpile --settings-file Test2/settings_intermediate.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:120 LoadLogsFromJSON DoNothing:300
 
 
 # # # ## Optimization
-# python run.py --environment logpile --settings-file Test2/settings_before.yml --agxOnly --spawner TreeLog:3 \
-# --controller AddObserver HeightfieldOptimizer:'sam6d_results/detection_pem.json' 
+python run.py --environment logpile --settings-file Test2/settings_before.yml --agxOnly --spawner TreeLog:3 \
+--controller AddObserver HeightfieldOptimizer:'sam6d_results/detection_pem.json' 
 ##
 
 
