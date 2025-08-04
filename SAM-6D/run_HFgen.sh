@@ -78,7 +78,7 @@ workon autoscene
 
 # ###### RUNNING AGX-PIPELINE #######
 # ## Create a HeightField from the depth map
-python generate_heightfield.py --depth_path "$DEPTH_PATH" --output "$HF_OUTPUT_PATH" \
+python utils/generate_heightfield.py --depth_path "$DEPTH_PATH" --output "$HF_OUTPUT_PATH" \
 --det_dir "$OUTPUT_DIR/sam6d_results/detection_ism.json" --downsampling 4 --camera_yaml "settings/settings.yml"
 # ##
 #####################################
