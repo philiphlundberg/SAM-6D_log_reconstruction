@@ -22,8 +22,8 @@ workon autoscene
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
 # --controller DoNothing:120 LoadLogsFromNPZ DoNothing:120 LogStateRecorder
 
-# python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
-# --controller DoNothing:120 DropLogs DoNothing:300 LogStateRecorder TakeSnapshot
+python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
+--controller DoNothing:120 DropLogs DoNothing:300 LogStateRecorder TakeSnapshot
 
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:4 \
 # --controller DropAndEmbedLogs LogStateRecorder TakeSnapshot
@@ -49,8 +49,8 @@ export SEARCH_TEXT="A cut wooden log."
 
 ### Run instance segmentation model
 cd ../Instance_Segmentation_Model
-# python run_inference_custom.py --segmentor_model $SEGMENTOR_MODEL --output_dir $OUTPUT_DIR --cad_path $CAD_PATH \
-# --rgb_path $RGB_PATH --depth_path $DEPTH_PATH --cam_path $CAMERA_PATH --stability_score_thresh $STABILITY_SCORE_THRESH --search_text "$SEARCH_TEXT"   
+python run_inference_custom.py --segmentor_model $SEGMENTOR_MODEL --output_dir $OUTPUT_DIR --cad_path $CAD_PATH \
+--rgb_path $RGB_PATH --depth_path $DEPTH_PATH --cam_path $CAMERA_PATH --stability_score_thresh $STABILITY_SCORE_THRESH --search_text "$SEARCH_TEXT"   
 # ###
 
 
@@ -61,8 +61,8 @@ export DET_SCORE_THRESH=0.32
 
 ### Run pose estimation model
 cd Pose_Estimation_Model
-# python run_inference_custom.py --output_dir $OUTPUT_DIR --cad_path $CAD_PATH --rgb_path $RGB_PATH --depth_path $DEPTH_PATH \
-# --cam_path $CAMERA_PATH --seg_path $SEG_PATH --det_score_thresh $DET_SCORE_THRESH
+python run_inference_custom.py --output_dir $OUTPUT_DIR --cad_path $CAD_PATH --rgb_path $RGB_PATH --depth_path $DEPTH_PATH \
+--cam_path $CAMERA_PATH --seg_path $SEG_PATH --det_score_thresh $DET_SCORE_THRESH
 # ###
 
 ### Options for clip:
@@ -83,45 +83,44 @@ workon autoscene
 # python generate_heightfield.py --depth_path "$DEPTH_PATH" --output "$HF_OUTPUT_PATH" \
 # --det_dir "$OUTPUT_DIR/sam6d_results/detection_ism.json" --downsampling 4 --camera_yaml "settings/settings.yml"
 # ##
-#####################################
 
-### Visualization on the original heightfield
-# python run.py --environment logpile --settings-file Test2/settings_default.yml --spawner TreeLog:3 \
-# --controller AddObserver DoNothing:120 LoadLogsFromJSON DoNothing:inf
-###
 
 ### Visualization before
-python run.py --environment logpile --settings-file Test2/settings_before.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:120 LoadLogsFromJSON DoNothing:120
-# ###
+# Static (Maybe not necessary)
+python run.py --environment logpile --settings-file Test2/settings_view_sam6d_static.yml --spawner TreeLog:3 \
+--controller AddObserver DoNothing:120 LogVisualizer DoNothing:600
+###
+# Dynamic (Contains all needed information)
+python run.py --environment logpile --settings-file Test2/settings_view_sam6d_dynamic.yml --spawner TreeLog:3 \
+--controller AddObserver DoNothing:120 LogVisualizer DoNothing:600
 
-# # ### Store pose with just initial guess
-python run.py --environment logpile --settings-file Test2/settings_intermediate.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:120 LoadLogsFromJSON DoNothing:300
-
-
-# # # ## Optimization
-python run.py --environment logpile --settings-file Test2/settings_before.yml --agxOnly --spawner TreeLog:3 \
---controller AddObserver HeightfieldOptimizer:'sam6d_results/detection_pem.json' 
-##
-
+# ## Optimization
+python run.py --environment logpile --settings-file Test2/settings_optimize_logs.yml --agxOnly --spawner TreeLog:3 \
+--controller AddObserver OptimizerBase LogOptimizer HeightfieldOptimizer:'sam6d_results/detection_pem.json'
+# ##
 
 ### Visualization after
-python run.py --environment logpile --settings-file Test2/settings_after.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:120 LoadLogsFromJSON DoNothing:300
+python run.py --environment logpile --settings-file Test2/settings_view_optimized.yml --spawner TreeLog:3 \
+--controller AddObserver DoNothing:120 LogVisualizer DoNothing:3000
 
-python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_init.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:10 LoadLogsFromJSON PoseEvaluator
-python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_opt.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:10 LoadLogsFromJSON PoseEvaluator
-python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_sam6d.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:10 LoadLogsFromJSON PoseEvaluator
-python run.py --environment logpile --agxOnly --settings-file Test2/eval_sam6d_init.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:10 LoadLogsFromJSON PoseEvaluator
-python run.py --environment logpile --agxOnly --settings-file Test2/eval_sam6d_opt.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:10 LoadLogsFromJSON PoseEvaluator
-python run.py --environment logpile --agxOnly --settings-file Test2/eval_init_opt.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:10 LoadLogsFromJSON PoseEvaluator
+
+# python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:10 \
+# --controller AddObserver LoadLogsFromJSON:'sam6d_results/detection_pem.json' 
+###
+#####################################
+
+# python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_init.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:10 LoadLogsFromJSON PoseEvaluator
+# python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_opt.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:10 LoadLogsFromJSON PoseEvaluator
+# python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_sam6d.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:10 LoadLogsFromJSON PoseEvaluator
+# python run.py --environment logpile --agxOnly --settings-file Test2/eval_sam6d_init.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:10 LoadLogsFromJSON PoseEvaluator
+# python run.py --environment logpile --agxOnly --settings-file Test2/eval_sam6d_opt.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:10 LoadLogsFromJSON PoseEvaluator
+# python run.py --environment logpile --agxOnly --settings-file Test2/eval_init_opt.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:10 LoadLogsFromJSON PoseEvaluator
 
 ####################################
 

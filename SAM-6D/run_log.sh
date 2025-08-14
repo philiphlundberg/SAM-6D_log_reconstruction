@@ -20,8 +20,8 @@ source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
 workon autoscene
 
 ####### CREATING SIMULATION IMAGES #######
-python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:1 \
---controller AddObserver DropLogs DoNothing:inf
+# python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:1 \
+# --controller AddObserver DropLogs DoNothing:inf
 
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
 # --controller LoadLogsFromNPZ DoNothing TakeSnapshot
@@ -85,26 +85,48 @@ workon autoscene
 
 
 ### Visualization before
-# python run.py --environment logpile --settings-file settings/settings.yml --spawner TreeLog:3 \
-# --controller AddObserver DoNothing:120 LoadLogsFromJSON DoNothing:600
-###
+# python run.py --environment logpile --settings-file Test2/settings_view_sam6d_static.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:120 LogVisualizer DoNothing:600
+# ###
+python run.py --environment logpile --settings-file Test2/settings_view_sam6d_dynamic.yml --spawner TreeLog:3 \
+--controller AddObserver DoNothing:120 LogVisualizer DoNothing:600
 
+
+
+
+
+
+# python run.py --environment logpile --settings-file Test2/settings_before.yml --agxOnly --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:120 OptimizerBase LogOptimizer # HeightfieldOptimizer:'sam6d_results/detection_pem.json' DoNothing:120
 
 # ## Optimization
-# python run.py --environment logpile --settings-file settings/settings.yml --agxOnly --spawner TreeLog:3 \
+# python run.py --environment logpile --settings-file Test2/settings_optimize_logs.yml --agxOnly --spawner TreeLog:3 \
 # --controller AddObserver HeightfieldOptimizer:'sam6d_results/detection_pem.json' 
 # ##
 
 
 ### Visualization after
-# python run.py --environment logpile --settings-file settings/settings_optimized.yml --spawner TreeLog:3 \
-# --controller AddObserver DoNothing:120 LoadLogsFromJSON DoNothing:3600 PoseEvaluator
+python run.py --environment logpile --settings-file Test2/settings_view_optimized.yml --spawner TreeLog:3 \
+--controller AddObserver DoNothing:120 LogVisualizer DoNothing:3000
 
 
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:10 \
 # --controller AddObserver LoadLogsFromJSON:'sam6d_results/detection_pem.json' 
 ###
 #####################################
+
+python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_init.yml --spawner TreeLog:3 \
+--controller AddObserver DoNothing:100 PoseEvaluator2
+python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_opt.yml --spawner TreeLog:3 \
+--controller AddObserver DoNothing:10 PoseEvaluator2
+# python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_sam6d.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:10 PoseEvaluator
+# python run.py --environment logpile --agxOnly --settings-file Test2/eval_sam6d_init.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:10 PoseEvaluator
+# python run.py --environment logpile --agxOnly --settings-file Test2/eval_sam6d_opt.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:10 PoseEvaluator
+# python run.py --environment logpile --agxOnly --settings-file Test2/eval_init_opt.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:10 PoseEvaluator
 
 deactivate
 cd SAM-6D/SAM-6D
