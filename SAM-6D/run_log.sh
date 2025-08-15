@@ -88,8 +88,11 @@ workon autoscene
 # python run.py --environment logpile --settings-file Test2/settings_view_sam6d_static.yml --spawner TreeLog:3 \
 # --controller AddObserver DoNothing:120 LogVisualizer DoNothing:600
 # ###
-python run.py --environment logpile --settings-file Test2/settings_view_sam6d_dynamic.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:120 LogVisualizer DoNothing:600
+
+
+
+# python run.py --environment logpile --settings-file Test2/settings_view_sam6d_dynamic.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:120 LogVisualizer DoNothing:600
 
 
 
@@ -106,8 +109,8 @@ python run.py --environment logpile --settings-file Test2/settings_view_sam6d_dy
 
 
 ### Visualization after
-python run.py --environment logpile --settings-file Test2/settings_view_optimized.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:120 LogVisualizer DoNothing:3000
+# python run.py --environment logpile --settings-file Test2/settings_view_optimized.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:120 LogVisualizer DoNothing:3000
 
 
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:10 \
@@ -115,10 +118,10 @@ python run.py --environment logpile --settings-file Test2/settings_view_optimize
 ###
 #####################################
 
-python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_init.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:100 PoseEvaluator2
-python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_opt.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:10 PoseEvaluator2
+# python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_init.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:100 PoseEvaluator2
+# python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_opt.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:10 PoseEvaluator2
 # python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_sam6d.yml --spawner TreeLog:3 \
 # --controller AddObserver DoNothing:10 PoseEvaluator
 # python run.py --environment logpile --agxOnly --settings-file Test2/eval_sam6d_init.yml --spawner TreeLog:3 \
@@ -127,6 +130,13 @@ python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_opt.
 # --controller AddObserver DoNothing:10 PoseEvaluator
 # python run.py --environment logpile --agxOnly --settings-file Test2/eval_init_opt.yml --spawner TreeLog:3 \
 # --controller AddObserver DoNothing:10 PoseEvaluator
+
+python utils/plot_pose_errors.py \
+  --init "Test2/results/pose_pairs_gt_init.csv" \
+  --opt  "Test2/results/pose_pairs_gt_opt.csv" \
+  --out  "Test2/results/pose_scatter.png" \
+  --summary "Test2/results/pose_stats.txt" \
+  --title "Init vs Opt (All Runs)"
 
 deactivate
 cd SAM-6D/SAM-6D

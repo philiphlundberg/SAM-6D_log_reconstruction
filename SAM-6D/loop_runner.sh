@@ -30,3 +30,10 @@ for FOLDER in $(seq 1 2); do
 
     echo "Finished processing folder: $FOLDER"
 done
+
+python utils/plot_pose_errors.py \
+  --init "Test2/results/pose_pairs_gt_init.jsonl" \
+  --opt  "Test2/results/pose_pairs_gt_opt.jsonl" \
+  --out  "Test2/results/pose_scatter.png" \
+  --summary "Test2/results/pose_stats.txt" \
+  --title "Init vs Opt (All Runs)"
