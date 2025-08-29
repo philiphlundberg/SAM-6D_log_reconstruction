@@ -7,7 +7,7 @@ export DEPTH_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstr
 export CAMERA_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/SAM-6D/SAM-6D/Data/Example/camera_logs.json    # path to given camera intrinsics
 export OUTPUT_DIR=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction         # path to a pre-defined file for saving results
 export BLENDER_PATH=/home/philiph/Blender/blender-3.3.1-linux-x64
-export HF_OUTPUT_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/heightfields/heightfield.npz
+export HF_OUTPUT_PATH=/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruction/Test2/1/heightfields/heightfield.npz
 
 source /home/philiph/miniconda3/etc/profile.d/conda.sh
 # conda init
@@ -18,9 +18,11 @@ export VIRTUALENVWRAPPER_PYTHON=/usr/bin/python3
 export VIRTUALENVWRAPPER_VIRTUALENV=/usr/bin/virtualenv
 source /usr/share/virtualenvwrapper/virtualenvwrapper.sh
 workon autoscene
+export OSG_NOTIFY_LEVEL=WARN
+
 
 ####### CREATING SIMULATION IMAGES #######
-# python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:1 \
+# python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
 # --controller AddObserver DropLogs DoNothing:inf
 
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
@@ -79,28 +81,20 @@ workon autoscene
 
 # ###### RUNNING AGX-PIPELINE #######
 # ## Create a HeightField from the depth map
-# python generate_heightfield.py --depth_path "$DEPTH_PATH" --output "$HF_OUTPUT_PATH" \
+# python utils/generate_heightfield.py --depth_path "$DEPTH_PATH" --output "$HF_OUTPUT_PATH" \
 # --det_dir "$OUTPUT_DIR/sam6d_results/detection_ism.json" --downsampling 4 --camera_yaml "settings/settings.yml"
 # ##
 
 
 ### Visualization before
 # python run.py --environment logpile --settings-file Test2/settings_view_sam6d_static.yml --spawner TreeLog:3 \
-# --controller AddObserver DoNothing:120 LogVisualizer DoNothing:600
-# ###
-
-
-
+# --controller AddObserver DoNothing:120 LogVisualizer DoNothing:6000
 # python run.py --environment logpile --settings-file Test2/settings_view_sam6d_dynamic.yml --spawner TreeLog:3 \
-# --controller AddObserver DoNothing:120 LogVisualizer DoNothing:600
-
-
-
-
-
-
-# python run.py --environment logpile --settings-file Test2/settings_before.yml --agxOnly --spawner TreeLog:3 \
-# --controller AddObserver DoNothing:120 OptimizerBase LogOptimizer # HeightfieldOptimizer:'sam6d_results/detection_pem.json' DoNothing:120
+# --controller AddObserver DoNothing:120 LogVisualizer DoNothing:6000
+# # ###
+# # OSG_NOTIFY_LEVEL=WARN 
+# python run.py --environment logpile --settings-file Test2/settings_optimize_logs.yml --agxOnly --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:120 OptimizerBase LogOptimizer # HeightfieldOptimizer:'sam6d_results/detection_pem.json'
 
 # ## Optimization
 # python run.py --environment logpile --settings-file Test2/settings_optimize_logs.yml --agxOnly --spawner TreeLog:3 \
@@ -109,8 +103,8 @@ workon autoscene
 
 
 ### Visualization after
-# python run.py --environment logpile --settings-file Test2/settings_view_optimized.yml --spawner TreeLog:3 \
-# --controller AddObserver DoNothing:120 LogVisualizer DoNothing:3000
+python run.py --environment logpile --settings-file Test2/settings_view_optimized.yml --spawner TreeLog:3 \
+--controller AddObserver DoNothing:120 LogVisualizer DoNothing:3000
 
 
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:10 \
@@ -131,12 +125,12 @@ workon autoscene
 # python run.py --environment logpile --agxOnly --settings-file Test2/eval_init_opt.yml --spawner TreeLog:3 \
 # --controller AddObserver DoNothing:10 PoseEvaluator
 
-python utils/plot_pose_errors.py \
-  --init "Test2/results/pose_pairs_gt_init.csv" \
-  --opt  "Test2/results/pose_pairs_gt_opt.csv" \
-  --out  "Test2/results/pose_scatter.png" \
-  --summary "Test2/results/pose_stats.txt" \
-  --title "Init vs Opt (All Runs)"
+# python utils/plot_pose_errors.py \
+#   --init "Test2/results/pose_pairs_gt_init.csv" \
+#   --opt  "Test2/results/pose_pairs_gt_opt.csv" \
+#   --out  "Test2/results/pose_scatter.png" \
+#   --summary "Test2/results/pose_stats.txt" \
+#   --title "Init vs Opt (All Runs)"
 
 deactivate
 cd SAM-6D/SAM-6D

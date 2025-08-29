@@ -43,7 +43,7 @@ cd Render
 ###
 
 export SEGMENTOR_MODEL=sam
-export STABILITY_SCORE_THRESH=0.97
+export STABILITY_SCORE_THRESH=0.974
 export SEARCH_TEXT="A cut wooden log."
 
 
@@ -88,20 +88,20 @@ python utils/generate_heightfield.py --depth_path "$DEPTH_PATH" --output "$HF_OU
 ### Visualization before
 # Static (Maybe not necessary)
 python run.py --environment logpile --settings-file Test2/settings_view_sam6d_static.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:120 LogVisualizer DoNothing:600
+--controller AddObserver DoNothing:120 LogVisualizer DoNothing:60
 ###
 # Dynamic (Contains all needed information)
 python run.py --environment logpile --settings-file Test2/settings_view_sam6d_dynamic.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:120 LogVisualizer DoNothing:600
+--controller AddObserver DoNothing:120 LogVisualizer DoNothing:60
 
 # ## Optimization
 python run.py --environment logpile --settings-file Test2/settings_optimize_logs.yml --agxOnly --spawner TreeLog:3 \
---controller AddObserver OptimizerBase LogOptimizer HeightfieldOptimizer:'sam6d_results/detection_pem.json'
+--controller AddObserver OptimizerBase LogOptimizer # HeightfieldOptimizer:'sam6d_results/detection_pem.json'
 # ##
 
 ### Visualization after
 python run.py --environment logpile --settings-file Test2/settings_view_optimized.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:120 LogVisualizer DoNothing:3000
+--controller AddObserver DoNothing:120 LogVisualizer DoNothing:60
 
 
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:10 \

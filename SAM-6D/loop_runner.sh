@@ -31,9 +31,13 @@ for FOLDER in $(seq 1 2); do
     echo "Finished processing folder: $FOLDER"
 done
 
+source /home/philiph/miniconda3/etc/profile.d/conda.sh
+# conda init
+conda activate sam6d
+
 python utils/plot_pose_errors.py \
-  --init "Test2/results/pose_pairs_gt_init.jsonl" \
-  --opt  "Test2/results/pose_pairs_gt_opt.jsonl" \
+  --init "Test2/results/pose_pairs_gt_init.csv" \
+  --opt  "Test2/results/pose_pairs_gt_opt.csv" \
   --out  "Test2/results/pose_scatter.png" \
   --summary "Test2/results/pose_stats.txt" \
   --title "Init vs Opt (All Runs)"
