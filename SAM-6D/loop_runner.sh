@@ -8,7 +8,7 @@ RESULTS_BACKUP="/home/philiph/Documents/PhiliphExjobb/automatic_scene_reconstruc
 # List of folders to iterate over (inside Test2_original)
 # FOLDERS=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" )  # Add as many as you have
 
-for FOLDER in $(seq 1 2); do
+for FOLDER in $(seq 1 110); do
     echo "============================"
     echo "Running for folder: $FOLDER"
     echo "============================"
