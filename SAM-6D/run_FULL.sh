@@ -22,8 +22,8 @@ workon autoscene
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
 # --controller DoNothing:120 LoadLogsFromNPZ DoNothing:120 LogStateRecorder
 
-python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
---controller DoNothing:120 DropLogs DoNothing:300 LogStateRecorder TakeSnapshot
+# python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:0 \
+# --controller DoNothing:120 DropLogs DoNothing:300 LogStateRecorder TakeSnapshot
 
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:4 \
 # --controller DropAndEmbedLogs LogStateRecorder TakeSnapshot
@@ -43,7 +43,8 @@ cd Render
 ###
 
 export SEGMENTOR_MODEL=sam
-export STABILITY_SCORE_THRESH=0.976
+# export STABILITY_SCORE_THRESH=0.976
+STABILITY_SCORE_THRESH=0.75
 export SEARCH_TEXT="A cut wooden log."
 
 
@@ -96,7 +97,7 @@ python run.py --environment logpile --settings-file Test2/settings_view_sam6d_dy
 
 # ## Optimization
 python run.py --environment logpile --settings-file Test2/settings_optimize_logs.yml --agxOnly --spawner TreeLog:3 \
---controller AddObserver OptimizerBase LogOptimizer # HeightfieldOptimizer:'sam6d_results/detection_pem.json'
+--controller AddObserver OptimizerBase LogOptimizer HeightfieldOptimizer:'sam6d_results/detection_pem.json'
 # ##
 
 ### Visualization after

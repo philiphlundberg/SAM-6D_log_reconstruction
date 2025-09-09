@@ -41,7 +41,7 @@ cd Render
 ###
 
 export SEGMENTOR_MODEL=sam
-export STABILITY_SCORE_THRESH=0.97
+export STABILITY_SCORE_THRESH=0.92
 export SEARCH_TEXT="A cut wooden log."
 
 

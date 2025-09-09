@@ -97,8 +97,8 @@ workon autoscene
 # # --controller AddObserver DoNothing:120 OptimizerBase LogOptimizer # HeightfieldOptimizer:'sam6d_results/detection_pem.json'
 
 # # ## Optimization
-# python run.py --environment logpile --settings-file Test2/settings_optimize_logs.yml --agxOnly --spawner TreeLog:3 \
-# --controller AddObserver OptimizerBase LogOptimizer HeightfieldOptimizer:'sam6d_results/detection_pem.json' 
+python run.py --environment logpile --settings-file Test2/settings_optimize_logs.yml --agxOnly --spawner TreeLog:3 \
+--controller AddObserver OptimizerBase LogOptimizer HeightfieldOptimizer:'sam6d_results/detection_pem.json' 
 # # ##
 
 
@@ -112,10 +112,10 @@ python run.py --environment logpile --settings-file Test2/settings_view_optimize
 # ###
 # #####################################
 
-python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_init.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:100 PoseEvaluator2
-python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_opt.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:10 PoseEvaluator2
+# python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_init.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:100 PoseEvaluator2
+# python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_opt.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:10 PoseEvaluator2
 # python run.py --environment logpile --agxOnly --settings-file Test2/eval_gt_sam6d.yml --spawner TreeLog:3 \
 # --controller AddObserver DoNothing:10 PoseEvaluator
 # python run.py --environment logpile --agxOnly --settings-file Test2/eval_sam6d_init.yml --spawner TreeLog:3 \
