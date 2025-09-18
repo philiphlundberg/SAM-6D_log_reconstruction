@@ -37,7 +37,8 @@ def draw_bounding_boxes(image_path, bboxes, output_path=None, format="xyxy"):
             y2 = y1 + h
         elif format == "xyxy":
             x1, y1, x2, y2 = bbox
-        cv2.rectangle(image, (int(x1), int(y1)), (int(x2), int(y2)), (255, 0, 0), 2)  # Blue box
+        color = tuple(np.random.randint(0, 255, size=3).tolist())
+        cv2.rectangle(image, (int(x1), int(y1)), (int(x2), int(y2)), color, 2)  # Blue box
     
     # Display or save the image
     if output_path:

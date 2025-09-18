@@ -22,8 +22,8 @@ workon autoscene
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
 # --controller DoNothing:120 LoadLogsFromNPZ DoNothing:120 LogStateRecorder
 
-# python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:0 \
-# --controller DoNothing:120 DropLogs DoNothing:300 LogStateRecorder TakeSnapshot
+# python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
+# --controller DoNothing:20 TakeSnapshot
 
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:4 \
 # --controller DropAndEmbedLogs LogStateRecorder TakeSnapshot
@@ -44,7 +44,7 @@ cd Render
 
 export SEGMENTOR_MODEL=sam
 # export STABILITY_SCORE_THRESH=0.976
-STABILITY_SCORE_THRESH=0.75
+STABILITY_SCORE_THRESH=0.9
 export SEARCH_TEXT="A cut wooden log."
 
 
@@ -89,7 +89,7 @@ python utils/generate_heightfield.py --depth_path "$DEPTH_PATH" --output "$HF_OU
 ### Visualization before
 # Static (Maybe not necessary)
 python run.py --environment logpile --settings-file Test2/settings_view_sam6d_static.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:120 LogVisualizer DoNothing:60
+--controller AddObserver DoNothing:120 LogVisualizer DoNothing:
 ###
 # Dynamic (Contains all needed information)
 python run.py --environment logpile --settings-file Test2/settings_view_sam6d_dynamic.yml --spawner TreeLog:3 \

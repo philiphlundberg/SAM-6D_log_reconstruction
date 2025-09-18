@@ -15,6 +15,9 @@ import cv2
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.join(BASE_DIR, '..', 'Pose_Estimation_Model')
+
+POSE_CLS_DEMOTION_THRESH = 0.6  # demote from category_id 2 -> 1 if raw pose score < this
+
 sys.path.append(os.path.join(ROOT_DIR, 'provider'))
 sys.path.append(os.path.join(ROOT_DIR, 'utils'))
 sys.path.append(os.path.join(ROOT_DIR, 'model'))
@@ -340,8 +343,10 @@ if __name__ == "__main__":
 
     if 'pred_pose_score' in out.keys():
         pose_scores = out['pred_pose_score'] * out['score']
+        pose_score_raw = out['pred_pose_score'].detach().cpu().numpy().reshape(-1)
     else:
         pose_scores = out['score']
+        pose_score_raw = np.ones(input_data['pts'].size(0), dtype=np.float32)
     pose_scores = pose_scores.detach().cpu().numpy()
     pred_rot = out['pred_R'].detach().cpu().numpy()
     pred_trans = out['pred_t'].detach().cpu().numpy() * 1000
@@ -355,10 +360,24 @@ if __name__ == "__main__":
         detections[idx]['R'] = list(pred_rot[idx].tolist())
         detections[idx]['t'] = list(pred_trans[idx].tolist())
 
+        detections[idx]['pose_score_raw'] = float(pose_score_raw[idx])
+
+        # Demote category if raw score too low
+        if det.get('category_id', None) == 2 and pose_score_raw[idx] < POSE_CLS_DEMOTION_THRESH:
+            det['original_category_id'] = 2
+            det['category_id'] = 1
+            det['demoted_due_to_pose'] = True
+        else:
+            det['demoted_due_to_pose'] = False
+    
+    # Det här är bara för att behålla logiken att demotea detektioner baserat på raw score men att det ändå ska fungera i pipelinen
+    # After filling detections with scores, R, t, pose_score_raw, demoted_due_to_pose
+    filtered_detections = [det for det in detections if not det.get('demoted_due_to_pose', False)]
+    # filtered_detections = detections
     with open(os.path.join(f"{cfg.output_dir}/sam6d_results", 'detection_pem.json'), "w") as f:
-        json.dump(detections, f)
+        json.dump(filtered_detections, f)
     with open(os.path.join(f"{cfg.output_dir}/Test2/1/sam6d_results", 'detection_pem.json'), "w") as f:
-        json.dump(detections, f)
+        json.dump(filtered_detections, f)
 
     print("=> visualizating ...")
     save_path = os.path.join(f"{cfg.output_dir}/sam6d_results", 'vis_pem.png')
@@ -366,7 +385,9 @@ if __name__ == "__main__":
     # Print the one with the highest score
     # valid_masks = pose_scores == pose_scores.max()
     # Print all the predictions
-    valid_masks = np.ones_like(pose_scores, dtype=bool)
+    # valid_masks = np.ones_like(pose_scores, dtype=bool)
+    valid_masks = np.array([det['category_id'] == 2 for det in detections])
+    
     K = input_data['K'].detach().cpu().numpy()[valid_masks]
     vis_img = visualize(img, pred_rot[valid_masks], pred_trans[valid_masks], model_points*1000, K, save_path)
     vis_img2 = visualize(img, pred_rot[valid_masks], pred_trans[valid_masks], model_points*1000, K, save_path2)

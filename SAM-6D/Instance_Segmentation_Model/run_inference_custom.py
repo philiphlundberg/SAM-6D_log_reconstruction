@@ -328,7 +328,7 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     ## Use this if you want to classify to two classes (log or not log)
     detections.add_attribute("scores", final_score)
     # Assign object ID 1 if final_score > 0.3, else 0
-    object_ids = (final_score >= 0.38).long()
+    object_ids = (final_score >= 0.28).long()
     detections.add_attribute("object_ids", object_ids)
     print(f"Assigned Object IDs: {object_ids}")
 
@@ -337,7 +337,7 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     # detections.apply_containment_suppression_for_id_2()  # Suppress overlapping boxes 
     # Use this to suppress overlapping masks
     detections.apply_mask_area_filter()
-    detections.apply_mask_dot_nms_category1()
+    # detections.apply_mask_dot_nms_category1()
     # detections.check_object_ids()
     # boxes = detections.boxes
     

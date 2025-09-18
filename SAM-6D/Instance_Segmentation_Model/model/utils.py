@@ -265,7 +265,7 @@ class Detections:
         for key in self.keys:
             setattr(self, key, getattr(self, key)[keep])
 
-    def apply_mask_area_filter(self, min_area=2000, mask_threshold=0.5):
+    def apply_mask_area_filter(self, min_area=2000, max_area=10000, mask_threshold=0.5):
         """
         Removes detections whose binary mask area is below a specified threshold.
 
@@ -281,7 +281,7 @@ class Detections:
         mask_areas = binary_masks.view(binary_masks.shape[0], -1).sum(dim=1)
 
         # Create a boolean mask indicating which detections to keep
-        keep = mask_areas >= min_area
+        keep = (mask_areas >= min_area) & (mask_areas <= max_area)
 
         # Update all relevant attributes to include only the kept detections
         for key in self.keys:
