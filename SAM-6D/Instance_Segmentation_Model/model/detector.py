@@ -221,10 +221,23 @@ class Instance_Segmentation_Model(pl.LightningModule):
         translate = self.Calculate_the_query_translation(proposals, batch["depth"][0], batch["cam_intrinsic"][0], batch['depth_scale'])
         posed_pc = posed_pc + translate[:, None, :].repeat(1, N_pointcloud, 1)
 
-        # project the pointcloud to the image
-        cam_instrinsic = batch["cam_intrinsic"][0][None, ...].repeat(N_query, 1, 1).to(torch.float32)
-        image_homo = torch.bmm(cam_instrinsic, posed_pc.permute(0, 2, 1)).permute(0, 2, 1)
-        image_vu = (image_homo / image_homo[:, :, -1][:, :, None])[:, :, 0:2].to(torch.int) # N_query x N_pointcloud x 2
+        # project the pointcloud to the image PERSPECTIVE!!!
+        # cam_instrinsic = batch["cam_intrinsic"][0][None, ...].repeat(N_query, 1, 1).to(torch.float32)
+        # image_homo = torch.bmm(cam_instrinsic, posed_pc.permute(0, 2, 1)).permute(0, 2, 1)
+        # image_vu = (image_homo / image_homo[:, :, -1][:, :, None])[:, :, 0:2].to(torch.int) # N_query x N_pointcloud x 2
+        # (imageH, imageW) = batch["depth"][0].shape
+        # image_vu[:, :, 0].clamp_(min=0, max=imageW - 1)
+        # image_vu[:, :, 1].clamp_(min=0, max=imageH - 1)
+
+        # TEST ORTHOGRAPHIC
+        K = batch["cam_intrinsic"][0].to(torch.float32)
+        sx, sy = K[0,0], K[1,1]
+        cx, cy = K[0,2], K[1,2]
+
+        u = posed_pc[:, :, 0] * sx + cx  # X
+        v = posed_pc[:, :, 1] * sy + cy  # Y
+        image_vu = torch.stack([u, v], dim=-1).to(torch.int)
+
         (imageH, imageW) = batch["depth"][0].shape
         image_vu[:, :, 0].clamp_(min=0, max=imageW - 1)
         image_vu[:, :, 1].clamp_(min=0, max=imageH - 1)

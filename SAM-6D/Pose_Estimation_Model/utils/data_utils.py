@@ -89,39 +89,76 @@ def rle_to_binary_mask(rle):
     return binary_mask
 
 
-def get_point_cloud_from_depth(depth, K, bbox=None):
-    """
-    Generates a 3D point cloud from a depth map using intrinsic camera parameters.
+## TEST A NEW METHOD WITH BOTH PERSPECTIVE AND ORTHOGRAPHIC PROJECTION
+# def get_point_cloud_from_depth(depth, K, bbox=None):
+#     """
+#     Generates a 3D point cloud from a depth map using intrinsic camera parameters.
 
-    :param depth: 2D numpy array representing the depth map of the scene.
-    :param K: 3x3 numpy array representing the intrinsic camera matrix.
-    :param bbox: Optional; list or tuple of four integers (rmin, rmax, cmin, cmax) 
-                 defining the region of interest in the depth map.
-    :return: 3D numpy array of shape (H, W, 3) where each pixel contains the 
-             corresponding 3D point coordinates (X, Y, Z) in the camera coordinate system.
-    """
+#     :param depth: 2D numpy array representing the depth map of the scene.
+#     :param K: 3x3 numpy array representing the intrinsic camera matrix.
+#     :param bbox: Optional; list or tuple of four integers (rmin, rmax, cmin, cmax) 
+#                  defining the region of interest in the depth map.
+#     :return: 3D numpy array of shape (H, W, 3) where each pixel contains the 
+#              corresponding 3D point coordinates (X, Y, Z) in the camera coordinate system.
+#     """
 
-    cam_fx, cam_fy, cam_cx, cam_cy = K[0,0], K[1,1], K[0,2], K[1,2]
+#     cam_fx, cam_fy, cam_cx, cam_cy = K[0,0], K[1,1], K[0,2], K[1,2]
+
+#     im_H, im_W = depth.shape
+#     xmap = np.array([[i for i in range(im_W)] for j in range(im_H)])
+#     ymap = np.array([[j for i in range(im_W)] for j in range(im_H)])
+
+#     if bbox is not None:
+#         rmin, rmax, cmin, cmax = bbox
+#         depth = depth[rmin:rmax, cmin:cmax].astype(np.float32)
+#         xmap = xmap[rmin:rmax, cmin:cmax].astype(np.float32)
+#         ymap = ymap[rmin:rmax, cmin:cmax].astype(np.float32)
+
+#     # Det här är höjden i djupbilden, alltså Z
+#     pt2 = depth.astype(np.float32) 
+#     # Det här är (x - cx) * Z / fx vilket är "pinhole camera model"
+#     # https://stackoverflow.com/questions/22938455/the-coordinate-system-of-pinhole-camera-model
+#     pt0 = (xmap.astype(np.float32) - cam_cx) * pt2 / cam_fx
+#     pt1 = (ymap.astype(np.float32) - cam_cy) * pt2 / cam_fy
+
+#     cloud = np.stack([pt0,pt1,pt2]).transpose((1,2,0))
+#     return cloud
+
+def get_point_cloud_from_depth(depth, K, bbox=None, depth_scale=1.0, projection='orthographic'):
+    """
+    Generates a 3D point cloud from a depth map using camera intrinsics.
+
+    depth: HxW depth; use depth_scale to convert to meters (e.g. 1000 for mm→m)
+    K: 3x3 intrinsics. For 'orthographic', K[0,0], K[1,1] are px/m.
+    projection: 'perspective' or 'orthographic'
+    """
+    fx, fy, cx, cy = K[0,0], K[1,1], K[0,2], K[1,2]
 
     im_H, im_W = depth.shape
-    xmap = np.array([[i for i in range(im_W)] for j in range(im_H)])
-    ymap = np.array([[j for i in range(im_W)] for j in range(im_H)])
+    xmap = np.arange(im_W, dtype=np.float32)[None, :].repeat(im_H, axis=0)
+    ymap = np.arange(im_H, dtype=np.float32)[:, None].repeat(im_W, axis=1)
 
     if bbox is not None:
         rmin, rmax, cmin, cmax = bbox
         depth = depth[rmin:rmax, cmin:cmax].astype(np.float32)
-        xmap = xmap[rmin:rmax, cmin:cmax].astype(np.float32)
-        ymap = ymap[rmin:rmax, cmin:cmax].astype(np.float32)
+        xmap  = xmap [rmin:rmax, cmin:cmax]
+        ymap  = ymap [rmin:rmax, cmin:cmax]
+    else:
+        depth = depth.astype(np.float32)
 
-    # Det här är höjden i djupbilden, alltså Z
-    pt2 = depth.astype(np.float32) 
-    # Det här är (x - cx) * Z / fx vilket är "pinhole camera model"
-    # https://stackoverflow.com/questions/22938455/the-coordinate-system-of-pinhole-camera-model
-    pt0 = (xmap.astype(np.float32) - cam_cx) * pt2 / cam_fx
-    pt1 = (ymap.astype(np.float32) - cam_cy) * pt2 / cam_fy
+    Z = depth / depth_scale
 
-    cloud = np.stack([pt0,pt1,pt2]).transpose((1,2,0))
+    if projection == 'perspective':
+        X = (xmap - cx) * Z / fx
+        Y = (ymap - cy) * Z / fy
+    else:  # 'orthographic'
+        # Here fx,fy are scales sx,sy in px/m
+        X = (xmap - cx) / fx
+        Y = (ymap - cy) / fy
+
+    cloud = np.stack([X, Y, Z], axis=-1)
     return cloud
+
 
 
 def get_resize_rgb_choose(choose, bbox, img_size):

@@ -44,14 +44,14 @@ cd Render
 
 export SEGMENTOR_MODEL=sam
 # export STABILITY_SCORE_THRESH=0.976
-STABILITY_SCORE_THRESH=0.9
+STABILITY_SCORE_THRESH=0.7
 export SEARCH_TEXT="A cut wooden log."
 
 
 ### Run instance segmentation model
 cd ../Instance_Segmentation_Model
-python run_inference_custom.py --segmentor_model $SEGMENTOR_MODEL --output_dir $OUTPUT_DIR --cad_path $CAD_PATH \
---rgb_path $RGB_PATH --depth_path $DEPTH_PATH --cam_path $CAMERA_PATH --stability_score_thresh $STABILITY_SCORE_THRESH --search_text "$SEARCH_TEXT"   
+# python run_inference_custom.py --segmentor_model $SEGMENTOR_MODEL --output_dir $OUTPUT_DIR --cad_path $CAD_PATH \
+# --rgb_path $RGB_PATH --depth_path $DEPTH_PATH --cam_path $CAMERA_PATH --stability_score_thresh $STABILITY_SCORE_THRESH --search_text "$SEARCH_TEXT"   
 # ###
 
 

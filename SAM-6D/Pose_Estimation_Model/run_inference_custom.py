@@ -349,7 +349,7 @@ if __name__ == "__main__":
         pose_score_raw = np.ones(input_data['pts'].size(0), dtype=np.float32)
     pose_scores = pose_scores.detach().cpu().numpy()
     pred_rot = out['pred_R'].detach().cpu().numpy()
-    pred_trans = out['pred_t'].detach().cpu().numpy() * 1000
+    pred_trans = out['pred_t'].detach().cpu().numpy()#  * 1000
 
     print("=> saving results ...")
     os.makedirs(f"{cfg.output_dir}/sam6d_results", exist_ok=True)
@@ -389,8 +389,8 @@ if __name__ == "__main__":
     valid_masks = np.array([det['category_id'] == 2 for det in detections])
     
     K = input_data['K'].detach().cpu().numpy()[valid_masks]
-    vis_img = visualize(img, pred_rot[valid_masks], pred_trans[valid_masks], model_points*1000, K, save_path)
-    vis_img2 = visualize(img, pred_rot[valid_masks], pred_trans[valid_masks], model_points*1000, K, save_path2)
+    vis_img = visualize(img, pred_rot[valid_masks], pred_trans[valid_masks], model_points, K, save_path)
+    vis_img2 = visualize(img, pred_rot[valid_masks], pred_trans[valid_masks], model_points, K, save_path2)
     vis_img.save(save_path)
     vis_img2.save(save_path2)
 

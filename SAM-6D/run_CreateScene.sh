@@ -22,7 +22,7 @@ workon autoscene
 # --controller DoNothing:120 LoadLogsFromNPZ DoNothing:120 LogStateRecorder
 
 python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
---controller DropLogs 
+--controller DoNothing:20 TakeSnapshot
 
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:4 \
 # --controller DropAndEmbedLogs LogStateRecorder TakeSnapshot
