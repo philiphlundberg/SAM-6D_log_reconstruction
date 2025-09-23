@@ -265,7 +265,7 @@ class Detections:
         for key in self.keys:
             setattr(self, key, getattr(self, key)[keep])
 
-    def apply_mask_area_filter(self, min_area=2000, max_area=10000, mask_threshold=0.5):
+    def apply_mask_area_filter(self, min_area=2000, max_area=12000, mask_threshold=0.5):
         """
         Removes detections whose binary mask area is below a specified threshold.
 
@@ -286,6 +286,108 @@ class Detections:
         # Update all relevant attributes to include only the kept detections
         for key in self.keys:
             setattr(self, key, getattr(self, key)[keep])
+
+    def print_mask_stats(dets, title="mask stats", mask_threshold=0.5, target_object_id=1):
+        masks = (dets.masks > mask_threshold)
+        areas = masks.flatten(1).sum(1).tolist()
+        print(f"\n[{title}] N={len(dets.boxes)}")
+        for i, (a, oid, s, box) in enumerate(zip(
+            areas, dets.object_ids.tolist(), dets.scores.tolist(), dets.boxes.tolist()
+        )):
+            print(f"  #{i:02d} oid={oid} area={int(a)} score={s:.3f} box={list(map(int, box))}")
+        print("  unique object_ids:", sorted(set(dets.object_ids.tolist())))
+        log_idx = [i for i, oid in enumerate(dets.object_ids.tolist()) if oid == target_object_id]
+        print("  log indices:", log_idx)
+
+    def apply_snug_pair_separation(
+        self,
+        area_min=8000,
+        area_max=12000,
+        contain_thresh=0.9,      # how much of small must lie inside big
+        min_new_area=1500,       # drop big if subtraction leaves too little
+        mask_threshold=0.5,
+        target_object_id=1       # logs in your internal mapping (2 on disk)
+    ):
+        """
+        If a 'big' log mask (area in [area_min, area_max]) contains another log mask,
+        subtract the smaller mask from the bigger one, so you don't double-count snug logs.
+
+        Operates in-place on self.masks and self.boxes.
+        """
+        
+        # Binarize
+        masks = (self.masks > mask_threshold)  # [N,H,W] bool
+        H, W = masks.shape[-2], masks.shape[-1]
+        device = masks.device
+
+        # Areas
+        areas = masks.flatten(1).sum(dim=1).float()  # [N]
+
+        # Only consider your log class internally (object_ids == 1)
+        is_log = (self.object_ids == target_object_id)
+
+        # Candidates: "big" masks in the given area band
+        candidates = torch.nonzero(
+            is_log & (areas >= area_min) & (areas <= area_max),
+            as_tuple=False
+        ).flatten()
+
+        if candidates.numel() == 0:
+            return  # nothing to do
+
+        # We’ll potentially modify masks and boxes
+        masks_mod = masks.clone()
+        boxes_mod = self.boxes.clone()
+
+        # Precompute sums to avoid recomputing
+        eps = 1e-6
+        sums = areas + eps
+
+        for i in candidates.tolist():
+            mi = masks_mod[i]
+            if mi.sum() < area_min:  # might have been edited already
+                continue
+
+            # Compare against all other log masks
+            for j in torch.nonzero(is_log, as_tuple=False).flatten().tolist():
+                if j == i:
+                    continue
+
+                mj = masks_mod[j]
+                sum_j = sums[j]
+
+                # Intersection
+                inter = (mi & mj).sum().float()
+
+                # fraction of the smaller mask covered by the big one
+                # we only care that small is inside big
+                frac_small_in_big = inter / sum_j
+
+                if frac_small_in_big >= contain_thresh:
+                    # subtract small from big: mi = mi & (~mj)
+                    mi = mi & (~mj)
+
+            # Update mask i after all subtractions
+            if mi.sum().item() < min_new_area:
+                # mark for removal by zeroing and a later keep-mask pass
+                masks_mod[i] = torch.zeros((H, W), dtype=torch.bool, device=device)
+                boxes_mod[i] = torch.tensor([0, 0, 0, 0], device=device, dtype=self.boxes.dtype)
+            else:
+                masks_mod[i] = mi
+                # Recompute bbox from mask
+                ys, xs = torch.nonzero(mi, as_tuple=True)
+                x1, x2 = xs.min().item(), xs.max().item()
+                y1, y2 = ys.min().item(), ys.max().item()
+                boxes_mod[i] = torch.tensor([x1, y1, x2, y2], device=device, dtype=self.boxes.dtype)
+
+        # Commit updates and drop empties
+        self.masks = masks_mod.float()  # keep original dtype convention
+        self.boxes = boxes_mod
+
+        keep = self.boxes[:, 2] > self.boxes[:, 0]  # width > 0 is a simple validity check
+        for key in self.keys:
+            setattr(self, key, getattr(self, key)[keep])
+
 
 
 

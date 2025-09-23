@@ -103,6 +103,8 @@ def visualize_all(rgb, detections, save_path="tmp.png"):
     alpha = 0.33
 
     for idx, det in enumerate(detections):
+        if int(det.get("category_id", -1)) != 2:   # Only process "logs"
+            continue
         mask = rle_to_mask(det["segmentation"])
         edge = canny(mask)
         edge = binary_dilation(edge, np.ones((2, 2)))
@@ -185,7 +187,7 @@ def batch_input_data(depth_path, cam_path, device):
     batch['depth_scale'] = torch.from_numpy(depth_scale).unsqueeze(0).to(device)
     return batch
 
-def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, cam_path, stability_score_thresh, search_text):
+def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, det_score_threshold, cam_path, stability_score_thresh, search_text):
     with initialize(version_base=None, config_path="configs"):
         cfg = compose(config_name='run_inference.yaml')
 
@@ -328,7 +330,7 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     ## Use this if you want to classify to two classes (log or not log)
     detections.add_attribute("scores", final_score)
     # Assign object ID 1 if final_score > 0.3, else 0
-    object_ids = (final_score >= 0.28).long()
+    object_ids = (final_score >= det_score_threshold).long()
     detections.add_attribute("object_ids", object_ids)
     print(f"Assigned Object IDs: {object_ids}")
 
@@ -337,7 +339,11 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     # detections.apply_containment_suppression_for_id_2()  # Suppress overlapping boxes 
     # Use this to suppress overlapping masks
     detections.apply_mask_area_filter()
-    detections.apply_mask_dot_nms_category1()
+    detections.print_mask_stats(detections)
+    detections.apply_snug_pair_separation()
+    detections.print_mask_stats(detections)
+    # detections.apply_mask_dot_nms_category1()
+
     # detections.check_object_ids()
     # boxes = detections.boxes
     
@@ -365,25 +371,58 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, c
     draw_bounding_boxes(rgb_path, boxes, f"{output_dir}/Test2/1/sam6d_results/vis_boxes_before.png")
     draw_bounding_boxes(rgb_path, boxes_after, f"{output_dir}/Test2/1/sam6d_results/vis_boxes_after.png")
     # vis_boxes.save(f"{output_dir}/sam6d_results/vis_boxes.png")
-    vis_img = visualize(rgb, detections, f"{output_dir}/sam6d_results/vis_ism.png")
-    vis_img = visualize(rgb, detections, f"{output_dir}/Test2/1/sam6d_results/vis_ism.png")
+    vis_img = visualize_all(rgb, detections, f"{output_dir}/sam6d_results/vis_ism.png")
+    vis_img = visualize_all(rgb, detections, f"{output_dir}/Test2/1/sam6d_results/vis_ism.png")
     vis_img.save(f"{output_dir}/sam6d_results/vis_ism.png")
     vis_img.save(f"{output_dir}/Test2/1/sam6d_results/vis_ism.png")
+
+def load_exact_section(settings_file: str, section: str, cli_overrides: dict):
+    cfg_all = OmegaConf.load(settings_file)
+    if section not in cfg_all:
+        raise KeyError(f"Section '{section}' not found in {settings_file}")
+    cfg = cfg_all[section]
+
+    # Apply CLI overrides (only keys relevant to this script)
+    ignore = {"settings_file", "section"}
+    overrides = {k: v for k, v in cli_overrides.items() if k not in ignore and v is not None}
+    return OmegaConf.merge(cfg, overrides)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--segmentor_model", default='sam', help="The segmentor model in ISM")
-    parser.add_argument("--output_dir", nargs="?", help="Path to root directory of the output")
-    parser.add_argument("--cad_path", nargs="?", help="Path to CAD(mm)")
-    parser.add_argument("--rgb_path", nargs="?", help="Path to RGB image")
-    parser.add_argument("--depth_path", nargs="?", help="Path to Depth image(mm)")
-    parser.add_argument("--cam_path", nargs="?", help="Path to camera information")
-    parser.add_argument("--stability_score_thresh", default=0.97, type=float, help="stability_score_thresh of SAM")
-    parser.add_argument("--search_text", default="log", type=str, help="search_text of CLIP")
+    parser.add_argument("--settings_file", default='../../../settings/default_settings.yaml', help="Path to settings file")
+    parser.add_argument("--section", default='SAM6DInference', help="The section in the settings file")
+
+    # parser.add_argument("--segmentor_model", default='sam', help="The segmentor model in ISM")
+    # parser.add_argument("--output_dir", nargs="?", help="Path to root directory of the output")
+    # parser.add_argument("--cad_path", nargs="?", help="Path to CAD(mm)")
+    # parser.add_argument("--rgb_path", nargs="?", help="Path to RGB image")
+    # parser.add_argument("--depth_path", nargs="?", help="Path to Depth image(mm)")
+    # parser.add_argument("--cam_path", nargs="?", help="Path to camera information")
+    # parser.add_argument("--stability_score_thresh", default=0.97, type=float, help="stability_score_thresh of SAM")
+    # parser.add_argument("--search_text", default="log", type=str, help="search_text of CLIP")
     args = parser.parse_args()
-    os.makedirs(f"{args.output_dir}/sam6d_results", exist_ok=True)
-    os.makedirs(f"{args.output_dir}/Test2/1/sam6d_results", exist_ok=True)
+    cfg = load_exact_section(args.settings_file, args.section, vars(args))
+
+    # Validate required keys for ISMInference
+    required = ["segmentor_model","output_dir","cad_path","rgb_path","depth_path","cam_path"]
+    missing = [k for k in required if cfg.get(k) in (None, "")]
+    if missing:
+        raise ValueError(f"Missing required keys in section '{args.section}': {missing}")
+
+    os.makedirs(f"{cfg.output_dir}/sam6d_results", exist_ok=True)
+    os.makedirs(f"{cfg.output_dir}/Test2/1/sam6d_results", exist_ok=True)
+    # run_inference(
+    #     args.segmentor_model, args.output_dir, args.cad_path, args.rgb_path, args.depth_path, args.cam_path, 
+    #     stability_score_thresh=args.stability_score_thresh
+    # )
     run_inference(
-        args.segmentor_model, args.output_dir, args.cad_path, args.rgb_path, args.depth_path, args.cam_path, 
-        stability_score_thresh=args.stability_score_thresh, search_text=args.search_text
+        segmentor_model=cfg.segmentor_model,
+        output_dir=cfg.output_dir,
+        cad_path=cfg.cad_path,
+        rgb_path=cfg.rgb_path,
+        depth_path=cfg.depth_path,
+        det_score_threshold=cfg.det_score_thresh,
+        cam_path=cfg.cam_path,
+        stability_score_thresh=float(cfg.get("stability_score_thresh", 0.97)),
+        search_text=cfg.get("search_text", "log")
     )
