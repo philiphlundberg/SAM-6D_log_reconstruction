@@ -35,6 +35,8 @@ from utils.inout import load_json, save_json_bop23
 
 from utils.clip_utils import *
 
+from utils.utils import load_exact_section
+
 from draw_bounding_box import draw_bounding_boxes
 
 inv_rgb_transform = T.Compose(
@@ -342,7 +344,7 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, d
     detections.print_mask_stats(detections)
     detections.apply_snug_pair_separation()
     detections.print_mask_stats(detections)
-    # detections.apply_mask_dot_nms_category1()
+    detections.apply_mask_dot_nms_category1()
 
     # detections.check_object_ids()
     # boxes = detections.boxes
@@ -362,7 +364,7 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, d
     save_json_bop23(save_path+".json", detections)
 
     save_path2 = f"{output_dir}/Test2/1/sam6d_results/detection_ism.json"
-    save_json_bop23(save_path2+".json", detections)
+    save_json_bop23(save_path2, detections)
     
 
     for det in detections:
@@ -376,16 +378,16 @@ def run_inference(segmentor_model, output_dir, cad_path, rgb_path, depth_path, d
     vis_img.save(f"{output_dir}/sam6d_results/vis_ism.png")
     vis_img.save(f"{output_dir}/Test2/1/sam6d_results/vis_ism.png")
 
-def load_exact_section(settings_file: str, section: str, cli_overrides: dict):
-    cfg_all = OmegaConf.load(settings_file)
-    if section not in cfg_all:
-        raise KeyError(f"Section '{section}' not found in {settings_file}")
-    cfg = cfg_all[section]
+# def load_exact_section(settings_file: str, section: str, cli_overrides: dict):
+#     cfg_all = OmegaConf.load(settings_file)
+#     if section not in cfg_all:
+#         raise KeyError(f"Section '{section}' not found in {settings_file}")
+#     cfg = cfg_all[section]
 
-    # Apply CLI overrides (only keys relevant to this script)
-    ignore = {"settings_file", "section"}
-    overrides = {k: v for k, v in cli_overrides.items() if k not in ignore and v is not None}
-    return OmegaConf.merge(cfg, overrides)
+#     # Apply CLI overrides (only keys relevant to this script)
+#     ignore = {"settings_file", "section"}
+#     overrides = {k: v for k, v in cli_overrides.items() if k not in ignore and v is not None}
+#     return OmegaConf.merge(cfg, overrides)
     
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()

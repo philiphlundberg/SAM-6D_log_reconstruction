@@ -13,6 +13,9 @@ import torch
 import torchvision.transforms as transforms
 import cv2
 
+from utils.utils import load_exact_section
+from omegaconf import OmegaConf
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.join(BASE_DIR, '..', 'Pose_Estimation_Model')
 
@@ -28,6 +31,9 @@ def get_parser():
     parser = argparse.ArgumentParser(
         description="Pose Estimation")
     # pem
+    parser.add_argument("--settings_file", required=True, help="path to settings file")
+    parser.add_argument("--section", default="SAM6DInference", help="which section in the settings file to load")
+    
     parser.add_argument("--gpus",
                         type=str,
                         default="0",
@@ -67,6 +73,8 @@ def init():
         osp.splitext(args.config.split("/")[-1])[0] + '_id' + str(args.exp_id)
     log_dir = osp.join("log", exp_name)
 
+    args = load_exact_section(args.settings_file, args.section, vars(args))
+
     cfg = gorilla.Config.fromfile(args.config)
     cfg.exp_name = exp_name
     cfg.gpus     = args.gpus
@@ -81,7 +89,7 @@ def init():
     cfg.cam_path = args.cam_path
     cfg.seg_path = args.seg_path
 
-    cfg.det_score_thresh = args.det_score_thresh
+    cfg.det_score_thresh = args.final_score_thresh
 
     # Comment out to use cpu instead
     gorilla.utils.set_cuda_visible_devices(gpu_ids = cfg.gpus)
@@ -295,6 +303,17 @@ def get_test_data(rgb_path, depth_path, cam_path, cad_path, seg_path, det_score_
     ret_dict['model'] = torch.FloatTensor(model_points).unsqueeze(0).repeat(ninstance, 1, 1).cuda()
     ret_dict['K'] = torch.FloatTensor(K).unsqueeze(0).repeat(ninstance, 1, 1).cuda()
     return ret_dict, whole_image, whole_pts.reshape(-1, 3), model_points, all_dets
+
+# def load_exact_section(settings_file: str, section: str, cli_overrides: dict):
+#     cfg_all = OmegaConf.load(settings_file)
+#     if section not in cfg_all:
+#         raise KeyError(f"Section '{section}' not found in {settings_file}")
+#     cfg = cfg_all[section]
+
+#     # Apply CLI overrides (only keys relevant to this script)
+#     ignore = {"settings_file", "section"}
+#     overrides = {k: v for k, v in cli_overrides.items() if k not in ignore and v is not None}
+#     return OmegaConf.merge(cfg, overrides)
 
 
 

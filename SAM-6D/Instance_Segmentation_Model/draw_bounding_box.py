@@ -57,7 +57,7 @@ import numpy as np
 
 
 def draw_bounding_boxes(image_path, bboxes, output_path=None, format="xyxy",
-                        alpha=0.6, thickness=2, seed=None):
+                        alpha=0.75, thickness=2, seed=None):
     """
     Draw semi-transparent rectangle edges with proper overlap blending.
     Overlapping edges become more opaque and mix colors.
