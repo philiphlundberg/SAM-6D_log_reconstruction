@@ -82,8 +82,6 @@ workon autoscene
 # ###### RUNNING AGX-PIPELINE #######
 # ## Create a HeightField from the depth map
 # python utils/generate_heightfield.py --settings_file settings/default_settings.yml --section TakeSnapshot
-# python utils/generate_heightfield.py --depth_path "$DEPTH_PATH" --output "$HF_OUTPUT_PATH" \
-# --det_dir "$OUTPUT_DIR/sam6d_results/detection_ism.json" --downsampling 4 --camera_yaml "settings/default_settings.yml"
 # ##
 
 
@@ -94,17 +92,17 @@ workon autoscene
 # --controller AddObserver DoNothing:120 LogVisualizer DoNothing:6000
 # # ###
 # # # Dynamic (Contains all needed information)
-# python run.py --environment logpile --settings-file Test2/settings_view_sam6d_dynamic.yml --spawner TreeLog:3 \
-# --controller AddObserver DoNothing:120 LogVisualizer DoNothing:200
+python run.py --environment logpile --settings-file Test2/settings_view_sam6d_dynamic.yml --spawner TreeLog:3 \
+--controller AddObserver DoNothing:120 LogVisualizer DoNothing:inf
 
 # # ## Optimization
-python run.py --environment logpile --settings-file Test2/settings_optimize_logs.yml --agxOnly --spawner TreeLog:3 \
---controller AddObserver OptimizerBase LogOptimizer HeightfieldOptimizer:'sam6d_results/detection_pem.json'
+# python run.py --environment logpile --settings-file Test2/settings_optimize_logs.yml --agxOnly --spawner TreeLog:3 \
+# --controller AddObserver OptimizerBase LogOptimizer HeightfieldOptimizer:'sam6d_results/detection_pem.json'
 # ##
 
 ### Visualization after
-python run.py --environment logpile --settings-file Test2/settings_view_optimized.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:120 LogVisualizer DoNothing:inf
+# python run.py --environment logpile --settings-file Test2/settings_view_optimized.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:120 LogVisualizer DoNothing:inf
 
 
 

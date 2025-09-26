@@ -20,10 +20,23 @@ cd Render
 
 ### Run instance segmentation model
 cd ../Instance_Segmentation_Model
-python run_inference_custom.py --settings_file ../../../settings/default_settings.yml --section SAM6DInference
+# python run_inference_custom.py --settings_file ../../../settings/default_settings.yml --section SAM6DInference
 ###
 
 ### Run pose estimation model
 cd ../Pose_Estimation_Model
-python run_inference_custom.py --settings_file ../../../settings/default_settings.yml --section SAM6DInference
+# python run_inference_custom.py --settings_file ../../../settings/default_settings.yml --section SAM6DInference
 ###
+
+workon autoscene
+
+
+
+
+cd ../../../
+# ###### RUNNING AGX-PIPELINE #######
+# ## Create a HeightField from the depth map
+python utils/generate_heightfield.py --settings_file settings/default_settings.yml --section TakeSnapshot
+# python utils/generate_heightfield.py --depth_path "$DEPTH_PATH" --output "$HF_OUTPUT_PATH" \
+# --det_dir "$OUTPUT_DIR/sam6d_results/detection_ism.json" --downsampling 4 --camera_yaml "settings/default_settings.yml"
+# ##
