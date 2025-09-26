@@ -26,6 +26,133 @@ sys.path.append(os.path.join(ROOT_DIR, 'utils'))
 sys.path.append(os.path.join(ROOT_DIR, 'model'))
 sys.path.append(os.path.join(BASE_DIR, 'model', 'pointnet2'))
 
+import numpy as np
+
+def _orthonormal_basis_from(v):
+    """Given unit v (3,), return two unit vectors u,w forming an ONB with v."""
+    v = v / np.linalg.norm(v)
+    a = np.array([1.0, 0.0, 0.0]) if abs(v[0]) < 0.9 else np.array([0.0, 1.0, 0.0])
+    u = np.cross(v, a); u /= np.linalg.norm(u)
+    w = np.cross(v, u); w /= np.linalg.norm(w)
+    return u, w
+
+def _fit_circle_2d(xy, trim_frac=0.1):
+    """
+    Least-squares circle fit to 2D points (algebraic fit).
+    Returns (cx, cy, R). Trims top trim_frac of residuals and refits once.
+    """
+    if xy.shape[0] < 10:
+        return None, None, None
+
+    def _solve(xy_):
+        x = xy_[:, 0]; y = xy_[:, 1]
+        D = np.column_stack([x, y, np.ones_like(x)])
+        b = -(x*x + y*y)
+        sol, *_ = np.linalg.lstsq(D, b, rcond=None)
+        a, b0, c = sol
+        cx, cy = -a/2.0, -b0/2.0
+        R = np.sqrt(max((a*a + b0*b0)/4.0 - c, 0.0))
+        return cx, cy, R
+
+    cx, cy, R = _solve(xy)
+    if R is None:
+        return None, None, None
+
+    # Trim worst residuals and refit
+    r = np.sqrt((xy[:,0]-cx)**2 + (xy[:,1]-cy)**2)
+    res = np.abs(r - R)
+    if trim_frac > 0.0:
+        keep = res <= np.quantile(res, 1.0 - trim_frac)
+        if keep.sum() >= 10:
+            cx, cy, R = _solve(xy[keep])
+    return cx, cy, float(R)
+
+def estimate_log_length_radius_circlefit(P,
+                                         major_pct=(0.5, 99.5),
+                                         keep_core=(0.1, 0.9),
+                                         trim_frac=0.1):
+    """
+    P: Nx3 points in meters (mask+depth).
+    - Length: percentile range along the major axis (as before).
+    - Radius: circle fit on the cross-section in the plane perpendicular to the axis.
+    """
+    P = np.asarray(P, dtype=np.float64)
+    P = P[np.isfinite(P).all(axis=1)]
+    if P.shape[0] < 50:
+        return None, None
+
+    # Mild outlier prune (quantile on distances to median)
+    med = np.median(P, axis=0)
+    d = np.linalg.norm(P - med, axis=1)
+    q_hi = np.quantile(d, 0.995)
+    P = P[d <= q_hi]
+    if P.shape[0] < 50:
+        return None, None
+
+    # Axis via SVD
+    C0 = P.mean(axis=0)
+    X = P - C0
+    _, _, Vt = np.linalg.svd(X, full_matrices=False)
+    v = Vt[0]  # major axis (unit)
+
+    # Coordinates along axis
+    s = X @ v
+    s_lo = np.percentile(s, major_pct[0])
+    s_hi = np.percentile(s, major_pct[1])
+    length_m = float(s_hi - s_lo)
+
+    # Keep a core band to avoid end effects for radius
+    lo = np.quantile(s, keep_core[0])
+    hi = np.quantile(s, keep_core[1])
+    core = (s >= lo) & (s <= hi)
+    Xc = X[core]
+    sc = s[core]
+    if Xc.shape[0] < 50:
+        Xc = X  # fallback if too few
+
+    # Project to plane ⟂ v, then to 2D with an ONB
+    u, w = _orthonormal_basis_from(v)
+    # radial residuals in plane: r = X - (s v)
+    r = Xc - np.outer(sc, v)
+    xy = np.column_stack([r @ u, r @ w])
+
+    cx, cy, R = _fit_circle_2d(xy, trim_frac=trim_frac)
+    radius_m = None if R is None else float(R)
+
+    return length_m, radius_m
+
+
+# import math
+
+# def pca_length_radius_from_points3d(P, major_pct=(0.5, 99.5), radius_percentile=99.0):
+#     """
+#     P: Nx3 points in meters (camera space). Returns (length_m, radius_m, axis_dir(3,), center(3,))
+#     - length_m: robust extent along the major axis (percentile window)
+#     - radius_m: high-percentile perpendicular distance to that axis (robust to partial coverage)
+#     """
+#     import numpy as np
+
+#     P = np.asarray(P, dtype=np.float64)
+#     P = P[np.isfinite(P).all(axis=1)]
+#     if P.shape[0] < 50:
+#         C = P.mean(axis=0) if P.size else np.zeros(3)
+#         return 0.0, 0.0, np.array([1.0, 0.0, 0.0]), C
+
+#     C = P.mean(axis=0)
+#     X = P - C
+#     _, _, Vt = np.linalg.svd(X, full_matrices=False)
+#     v = Vt[0]  # major axis unit vector
+
+#     proj = X @ v
+#     lo, hi = np.percentile(proj, major_pct[0]), np.percentile(proj, major_pct[1])
+#     length_m = float(hi - lo)
+
+#     # perpendicular distance to axis
+#     d2 = np.sum(X * X, axis=1) - proj**2
+#     dists = np.sqrt(np.maximum(d2, 0.0))
+#     radius_m = float(np.percentile(dists, radius_percentile))
+
+#     return length_m, radius_m, v, C
 
 def get_parser():
     parser = argparse.ArgumentParser(
@@ -271,6 +398,38 @@ def get_test_data(rgb_path, depth_path, cam_path, cad_path, seg_path, det_score_
         cloud = cloud[flag]
         # print information about the cloud
         print(f"cloud shape: {cloud.shape}, choose shape: {choose.shape}, choose ratio: {choose.shape[0]/cloud.shape[0]}")
+
+
+        # --- Geometry (meters) from the *full* filtered cloud, before downsampling ---
+        try:
+            P_full = cloud  # meters (from whole_pts), already filtered by mask+radius
+            # Optional cap for runtime
+            if P_full.shape[0] > 250_000:
+                sel = np.random.choice(P_full.shape[0], 250_000, replace=False)
+                P_full = P_full[sel]
+
+            # Lm, Rm, axis3d, C3d = pca_length_radius_from_points3d(
+            #     P_full, major_pct=(0.5, 99.5), radius_percentile=95.0
+            # )
+
+            # # Store on the detection dict so it persists to detection_pem.json
+            # inst['est_length_m'] = float(Lm)
+            # inst['est_radius_m'] = float(Rm)
+
+            Lm, Rm = estimate_log_length_radius_circlefit(P_full,
+                                              major_pct=(0.5, 99.5),
+                                              keep_core=(0.1, 0.9),
+                                              trim_frac=0.1)
+            inst['est_length_m'] = None if Lm is None else float(Lm)
+            inst['est_radius_m'] = None if Rm is None else float(Rm)
+
+            inst['geom_num_pts'] = int(P_full.shape[0])  # handy for debugging
+        except Exception as e:
+            inst['est_length_m'] = None
+            inst['est_radius_m'] = None
+            inst['geom_error'] = str(e)
+        # -------------------------------------------------------------------------------
+
 
         if len(choose) <= cfg.n_sample_observed_point:
             choose_idx = np.random.choice(np.arange(len(choose)), cfg.n_sample_observed_point)

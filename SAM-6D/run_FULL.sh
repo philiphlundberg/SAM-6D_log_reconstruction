@@ -23,7 +23,7 @@ workon autoscene
 # --controller AddObserver DoNothing:10 DropLogs DoNothing:inf TakeSnapshot
 
 python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:3 \
---controller DoNothing:20 TakeSnapshot DoNothing:60
+--controller DoNothing:20 DropLogs DoNothing:100 TakeSnapshot DoNothing:60
 
 # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:4 \
 # --controller DropAndEmbedLogs LogStateRecorder TakeSnapshot
@@ -74,13 +74,13 @@ python run.py --environment logpile --settings-file Test2/settings_view_sam6d_dy
 --controller AddObserver DoNothing:120 LogVisualizer DoNothing:200
 
 # ## Optimization
-python run.py --environment logpile --settings-file Test2/settings_optimize_logs.yml --agxOnly --spawner TreeLog:3 \
---controller AddObserver OptimizerBase LogOptimizer # HeightfieldOptimizer:'sam6d_results/detection_pem.json'
-# ##
+# python run.py --environment logpile --settings-file Test2/settings_optimize_logs.yml --agxOnly --spawner TreeLog:3 \
+# --controller AddObserver OptimizerBase LogOptimizer # HeightfieldOptimizer:'sam6d_results/detection_pem.json'
+# # ##
 
-### Visualization after
-python run.py --environment logpile --settings-file Test2/settings_view_optimized.yml --spawner TreeLog:3 \
---controller AddObserver DoNothing:120 LogVisualizer DoNothing:60
+# ### Visualization after
+# python run.py --environment logpile --settings-file Test2/settings_view_optimized.yml --spawner TreeLog:3 \
+# --controller AddObserver DoNothing:120 LogVisualizer DoNothing:60
 
 
 # # python run.py --environment logpile --settings-file settings/default_settings.yml --spawner TreeLog:10 \
